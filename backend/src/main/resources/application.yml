@@ -1,0 +1,21 @@
+spring:
+  application:
+    name: voca
+  profiles:
+    active: local
+  jpa:
+    hibernate:
+      ddl-auto: update
+    properties:
+      hibernate:
+        dialect: org.hibernate.dialect.MySQL8Dialect
+        format_sql: true
+    show-sql: true
+    open-in-view: false
+
+server:
+  port: 8080
+
+logging:
+  level:
+    org.hibernate.SQL: debug
