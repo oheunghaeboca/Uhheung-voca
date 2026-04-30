@@ -125,6 +125,7 @@ attendance    : id, user_id, attend_date
   - `feat:` / `fix:` / `docs:` / `style:` / `refactor:` / `test:` / `chore:`
 - PR 제목: `이름-기능명-구현 진행도-PR 사유`
 - 머지된 마이그레이션 / 공유 코드는 임의 변경 금지.
+- **원격 푸시 / PR 생성은 학생(이경진) 명시적 승인 후에만**. AI(Claude/Cursor 등)가 임의로 `git push`, `gh pr create`, 강제 푸시(`--force`) 수행 금지. 로컬 commit은 자유, 원격 송출은 항상 사람이 OK.
 
 ### 4.4 Vibe Coding 규칙 (계획서)
 - AI 생성 코드는 **반드시 학생이 Examining 후 반영**.
@@ -239,3 +240,130 @@ Layer 3과 Layer 5 초안을 만들어줘. 빈 항목은 내가 채울 수 있�
 - 새 컨벤션 / DB 테이블 추가 → 2번·4번 갱신
 - 새로운 자주 쓰는 작업 패턴 → 6번 또는 7번에 예시 추가
 - 한 번 정한 규칙이 깨지면 즉시 수정
+
+---
+
+## 12. 산출물 컨텍스트 첨부 가이드 (v2.0 추가)
+
+> **목적**: Vibe Coding의 LLM이 일관된 코드를 만들려면 작업마다 적절한 산출물 문서를 컨텍스트로 줘야 한다. 어떤 작업에 어떤 문서를 첨부할지 한눈에 정리.
+
+### 12.1 산출물 인덱스
+
+| 문서 | 위치 | 용도 |
+|---|---|---|
+| ERD | `산출물/1_설계/ERD.md` | DB 스키마 + 관계 + 비즈니스 제약 |
+| System Architecture | `산출물/1_설계/System_Architecture.md` | 3-tier 책임 분리, JWT 흐름, FE/BE 책임 매트릭스 |
+| Wireframes | `산출물/1_설계/Wireframes.md` | 7개 화면 레이아웃 + 컴포넌트 데이터 바인딩 |
+| User Stories | `산출물/1_설계/User_Stories.md` | 25개 Story + Sprint 매핑 + Acceptance Criteria |
+| Sequence Diagrams | `산출물/1_설계/Sequence_Diagrams.md` | 4개 핵심 시나리오 (로그인, 퀴즈, 북마크, 미션) |
+| API 명세서 | `산출물/1_설계/API_명세서.md` | 35개 엔드포인트 (요청/응답 DTO) |
+| DoD | `산출물/2_프로젝트관리/DoD.md` | Story / Sprint / Release DoD 체크리스트 |
+| Component Tree (FE) | `frontend/COMPONENTS.md` | 라우트 12 + 컴포넌트 50+ 트리 |
+| Style Guide (FE) | `frontend/STYLE_GUIDE.md` | 디자인 토큰 (색·타이포·간격·라운드 등) |
+
+### 12.2 작업 종류별 첨부 매트릭스
+
+LLM에 다음 표 그대로 주면 된다:
+
+| 작업 종류 | 필수 첨부 | 선택 첨부 |
+|---|---|---|
+| **백엔드 신규 API** | ERD, API 명세서, Sequence Diagrams, DoD | User Stories |
+| **프론트 신규 화면** | Wireframes, COMPONENTS, STYLE_GUIDE, API 명세서 | User Stories |
+| **풀스택 (FE+BE) 한 기능** | 위 둘 다 + ERD + Sequence Diagrams | — |
+| **DB 스키마 변경** | ERD, 기존 V*.sql, DoD (V*.sql 규칙) | — |
+| **퍼포먼스 / 리팩토링** | System Architecture (책임 매트릭스) | — |
+| **버그 수정** | (해당 기능의) Sequence Diagram, AC | — |
+
+### 12.3 User Story 기반 풀스택 프롬프트 템플릿 (가장 자주 쓸 것)
+
+```
+@VIBE_CODING.md 기준. 아래 작업 부탁해.
+
+[Layer 3 - Task]
+- User Story: U-XX (Story 제목)
+  → User_Stories.md 참조
+- 위치: backend / frontend / 양쪽
+- 와이어프레임: Wireframes.md N번 절
+- API 계약: API_명세서.md X-Y 절 (메서드 + 경로 + 요청/응답 DTO + 에러 코드)
+- 시퀀스: Sequence_Diagrams.md N번 시나리오 (해당하는 경우)
+- DB 영향: 있음(새 V*.sql 추가) / 없음 / ERD.md N번 테이블만 사용
+- 컴포넌트 분해 (FE): COMPONENTS.md 의 어떤 페이지/컴포넌트 사용
+- 디자인 토큰 (FE): STYLE_GUIDE.md theme.* 만 사용
+
+[Layer 5 - Output]
+파일별 분리 + 메서드당 한 줄 주석 + 검증 방법(curl + 클릭 경로) +
+DoD.md 1번 체크리스트 결과(✓/✗/N/A) 표 포함
+```
+
+### 12.4 백엔드 단독 프롬프트 (단순 API 추가)
+
+```
+@VIBE_CODING.md + backend/CLAUDE.md 기준.
+
+[Layer 3 - Task]
+- 도메인: (auth / word / quiz / ...)
+- 엔드포인트: METHOD /api/...
+- 요청 DTO / 응답 DTO: API_명세서.md X-Y 그대로
+- 사용 테이블: ERD.md (어떤 테이블 / 관계)
+- 트랜잭션 / 동시성 주의점: (UNIQUE 제약 / Cascade 등)
+- 인증: USER / ADMIN / 불필요
+
+[Layer 5 - Output]
+Controller / Service / Repository / DTO / Entity 파일별 분리 +
+curl 명령 (정상 + 에러 케이스 1개 이상)
+```
+
+### 12.5 프론트 단독 프롬프트 (단순 화면 추가)
+
+```
+@VIBE_CODING.md + frontend/CLAUDE.md 기준.
+
+[Layer 3 - Task]
+- 화면: (Wireframes.md N번 절)
+- 라우트: /xxx
+- 컴포넌트 분해: (COMPONENTS.md — 재사용 가능한 컴포넌트 우선)
+- 호출 API: api/{도메인}.js 모듈 사용 (axios 직접 import 금지)
+- 사용자 동작: 클릭/입력 → 결과
+- 인증: ProtectedRoute / 공개
+
+[Layer 5 - Output]
+Page + 신규 컴포넌트 파일별 분리 +
+Styled Components (theme.* 토큰만 사용) +
+클릭 경로 검증 안내
+```
+
+### 12.6 디버깅 / Refining 프롬프트
+
+```
+@VIBE_CODING.md 기준.
+
+[현 상황]
+- User Story: U-XX
+- 파일/라인: backend/src/.../FooController.java:42, frontend/src/pages/.../Bar.jsx:15
+- 증상: (구체적으로 — 무슨 입력에 어떤 출력)
+- 기대 동작: (Sequence_Diagrams.md N번 또는 Wireframes.md M번 기준)
+
+[원인 추정]
+(있으면 적기, 없으면 빈 채로)
+
+[요청]
+- 해당 파일만 최소 변경으로 고쳐줘
+- 다른 파일 / 무관한 리팩토링 절대 금지 (Layer 4.5 위반)
+- 변경 이유 1줄 + 변경 전/후 라인 비교
+```
+
+### 12.7 산출물 갱신이 필요한 경우의 신호
+
+LLM에게 코드 작업 요청했을 때, 다음이 발생하면 **반드시 산출물 함께 갱신**:
+
+| 발생 사건 | 함께 갱신할 산출물 |
+|---|---|
+| 새 V*.sql 마이그레이션 추가 | ERD.md + (영향 시) API_명세서.md |
+| 신규 엔드포인트 | API_명세서.md + (해당 시) Sequence_Diagrams.md |
+| 신규 화면 / 라우트 | Wireframes.md + COMPONENTS.md |
+| 신규 컴포넌트 (재사용 가능) | COMPONENTS.md |
+| 디자인 토큰 추가 / 변경 | STYLE_GUIDE.md + theme.js |
+| 신규 User Story | User_Stories.md |
+| Sprint 종료 | User_Stories.md (Velocity 기록) |
+
+> **원칙**: 코드와 산출물은 한 PR에서 함께 머지. 산출물 갱신 누락은 DoD 위반.
