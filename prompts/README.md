@@ -1,4 +1,4 @@
-# 어흥해보카 — Prompts 아카이브
+# 어흥해보카 — Prompts 템플릿
 
 > Vibe Coding 프롬프트의 **버전관리 저장소**.
 > 원본 가이드: [`../VIBE_CODING.md`](../VIBE_CODING.md) — 본 폴더는 그 운영 사본이다.
@@ -17,8 +17,6 @@ prompts/
 │   ├── 04_db_migration.md     # DB 스키마 변경 (V*.sql)
 │   ├── 05_debug_refine.md     # 디버깅 / Refining
 │   └── 06_meta.md             # Layer 채우기 막힐 때 메타 프롬프트
-├── archive/                   # 실제 사용한 프롬프트 + 결과 기록
-│   └── ARCHIVE_TEMPLATE.md    # Notion 양식과 동일 (사후 기록용)
 └── CHANGELOG.md               # 템플릿 자체의 버전 변경 이력
 ```
 
@@ -31,12 +29,7 @@ prompts/
 2. Layer 3(Task) / Layer 5(Output)를 채워 LLM에 입력
 3. 결과 검토 후 머지 (`Examining` 단계)
 
-### 2.2 사후 아카이브 (계획서 권장 — 과제 3 MVP 보고서 근거)
-1. `archive/` 폴더에 `YYYY-MM-DD_{기능명}.md` 파일 생성
-2. `ARCHIVE_TEMPLATE.md` 양식대로 채움
-3. 결과 / 수정한 부분 / 배운 점 기록
-
-### 2.3 템플릿 자체 갱신
+### 2.2 템플릿 자체 갱신
 - 컨벤션이 바뀌면 `templates/*.md` 갱신 + `CHANGELOG.md` 한 줄 추가
 - **원본인 `VIBE_CODING.md` 도 동시 갱신** — 두 파일이 어긋나면 안 됨
 
@@ -66,4 +59,4 @@ prompts/
 | DB 스키마 변경 | ERD / 기존 V*.sql / DoD |
 | 버그 수정 | (해당 기능의) Sequence + AC |
 
-> 자세한 내용은 [`../VIBE_CODING.md`](../VIBE_CODING.md) 12.2절.
+> 자세한 내용은 [`../VIBE_CODING.md`](../VIBE_CODING.md) 11.2절.
