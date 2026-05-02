@@ -55,6 +55,7 @@ Uhheung-voca/
 - PR 제목: `이름-기능명-구현 진행도-PR 사유`
 - 머지 전 최소 1명 리뷰
 - `develop` 직접 푸시 금지
+- **원격 푸시 / PR 생성 / 강제 푸시 모두 학생(이경진) 명시적 승인 후에만**. AI는 로컬 commit은 진행해도 되지만 `git push`·`gh pr create` 등 원격 송출은 항상 허락을 받는다. (자세한 규약은 [`VIBE_CODING.md`](./VIBE_CODING.md) 4.3절)
 
 ### 3.2 커밋 메시지 (한국어 본문)
 - `feat:` 새 기능 / `fix:` 버그 / `docs:` 문서 / `style:` 포맷 / `refactor:` 리팩토링 / `test:` 테스트 / `chore:` 빌드·설정
