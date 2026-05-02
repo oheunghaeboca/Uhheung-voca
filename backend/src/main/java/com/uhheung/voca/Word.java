@@ -19,7 +19,7 @@ public class Word {
     private String english;
 
     @Column(nullable = false)
-    private String meaning;
+    private String korean;
 
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
