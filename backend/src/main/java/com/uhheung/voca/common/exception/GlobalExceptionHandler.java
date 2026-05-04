@@ -28,6 +28,12 @@ public class GlobalExceptionHandler {
                 .body(ErrorResponse.of(400, ErrorCode.INVALID_INPUT.getCode(), message));
     }
 
+    @ExceptionHandler(IllegalArgumentException.class)
+    public ResponseEntity<ErrorResponse> handleIllegalArgument(IllegalArgumentException e) {
+        return ResponseEntity.status(ErrorCode.NOT_FOUND.getStatus())
+                .body(ErrorResponse.of(404, ErrorCode.NOT_FOUND.getCode(), e.getMessage()));
+    }
+
     @ExceptionHandler(Exception.class)
     public ResponseEntity<ErrorResponse> handleUnknown(Exception e) {
         log.error("unhandled exception", e);
