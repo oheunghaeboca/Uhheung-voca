@@ -35,19 +35,23 @@ DB에 저장된 TOEIC 단어 목록을 조회한다.
 [
   {
     "id": 1,
-    "english": "distinguish",
-    "korean": "구별하다",
-    "level": "BASIC",
-    "type": "RC",
-    "example": "It is hard to distinguish the two words."
+    "english": "review",
+    "korean": "검토하다",
+    "level": "Essential",
+    "part": "Verb",
+    "type": "LC",
+    "example": "The manager will review the documents tomorrow.",
+    "exampleTranslation": "매니저가 내일 서류를 검토할 것이다."
   },
   {
     "id": 2,
-    "english": "obtain",
-    "korean": "얻다",
-    "level": "BASIC",
+    "english": "budget",
+    "korean": "예산",
+    "level": "Essential",
+    "part": "Noun",
     "type": "RC",
-    "example": "You must obtain permission first."
+    "example": "The project was completed on time and within budget.",
+    "exampleTranslation": "그 프로젝트는 예산 내에서 제시간에 완료되었다."
   }
 ]
 ```
