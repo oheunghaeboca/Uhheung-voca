@@ -66,6 +66,7 @@ DB에 저장된 TOEIC 단어 목록을 조회한다.
 | level | String | 단어 난이도 |
 | type | String | TOEIC 유형, LC 또는 RC |
 | example | String | 예문 |
+| exampleTranslation | String | 예문 한국어 해석 |
 
 ## HTTP Status Code
 
