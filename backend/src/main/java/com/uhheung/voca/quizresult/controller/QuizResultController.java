@@ -1,5 +1,6 @@
 package com.uhheung.voca.quizresult.controller;
 
+import com.uhheung.voca.quizresult.dto.QuizResultDetailResponse;
 import com.uhheung.voca.quizresult.dto.QuizResultSaveRequest;
 import com.uhheung.voca.quizresult.dto.QuizResultSaveResponse;
 import com.uhheung.voca.quizresult.service.QuizResultService;
@@ -7,6 +8,8 @@ import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -24,5 +27,12 @@ public class QuizResultController {
     public ResponseEntity<QuizResultSaveResponse> save(@Valid @RequestBody QuizResultSaveRequest request) {
         QuizResultSaveResponse response = quizResultService.save(request);
         return ResponseEntity.status(HttpStatus.CREATED).body(response);
+    }
+
+    // 저장된 퀴즈 결과와 문항별 상세 결과를 조회한다.
+    @GetMapping("/{quizResultId}")
+    public ResponseEntity<QuizResultDetailResponse> getDetail(@PathVariable Long quizResultId) {
+        QuizResultDetailResponse response = quizResultService.getDetail(quizResultId);
+        return ResponseEntity.ok(response);
     }
 }

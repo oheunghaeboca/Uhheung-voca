@@ -7,6 +7,7 @@ import com.uhheung.voca.quiz.entity.QuizResultDetail;
 import com.uhheung.voca.quiz.repository.QuizResultDetailRepository;
 import com.uhheung.voca.quiz.repository.QuizResultRepository;
 import com.uhheung.voca.quizresult.dto.QuizResultDetailRequest;
+import com.uhheung.voca.quizresult.dto.QuizResultDetailResponse;
 import com.uhheung.voca.quizresult.dto.QuizResultSaveRequest;
 import com.uhheung.voca.quizresult.dto.QuizResultSaveResponse;
 import com.uhheung.voca.user.repository.UserRepository;
@@ -18,7 +19,9 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
+import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
@@ -41,6 +44,53 @@ public class QuizResultService {
         quizResultDetailRepository.saveAll(details);
 
         return QuizResultSaveResponse.from(savedQuizResult);
+    }
+
+    // 저장된 퀴즈 결과와 문항별 상세 결과를 조회한다.
+    @Transactional(readOnly = true)
+    public QuizResultDetailResponse getDetail(Long quizResultId) {
+        QuizResult quizResult = quizResultRepository.findById(quizResultId)
+                .orElseThrow(() -> new ApiException(ErrorCode.NOT_FOUND));
+
+        List<QuizResultDetail> details =
+                quizResultDetailRepository.findByQuizResultIdOrderByQuestionNumberAsc(quizResultId);
+
+        Set<Long> wordIds = details.stream()
+                .map(QuizResultDetail::getWordId)
+                .collect(Collectors.toSet());
+
+        Map<Long, Word> wordMap = wordRepository.findAllById(wordIds).stream()
+                .collect(Collectors.toMap(Word::getId, word -> word));
+
+        List<QuizResultDetailResponse.Item> responseDetails = details.stream()
+                .map(detail -> {
+                    Word word = wordMap.get(detail.getWordId());
+
+                    if (word == null) {
+                        throw new ApiException(ErrorCode.WORD_NOT_FOUND);
+                    }
+
+                    return new QuizResultDetailResponse.Item(
+                            detail.getWordId(),
+                            word.getEnglish(),
+                            word.getKorean(),
+                            detail.getQuestionNumber(),
+                            detail.getUserAnswer(),
+                            detail.getCorrectAnswer(),
+                            detail.getIsCorrect()
+                    );
+                })
+                .toList();
+
+        return new QuizResultDetailResponse(
+                quizResult.getId(),
+                quizResult.getQuizType(),
+                quizResult.getTotalQuestions(),
+                quizResult.getCorrectCount(),
+                quizResult.getScore(),
+                quizResult.getSubmittedAt(),
+                responseDetails
+        );
     }
 
     // 요청한 userId가 실제 users 테이블에 존재하는지 확인한다.
