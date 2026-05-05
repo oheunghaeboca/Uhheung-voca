@@ -42,7 +42,7 @@ public class RefreshToken {
     private Long userId;
 
     /** 원본 토큰의 SHA-256 해시(hex 64자). 원본 토큰은 어디에도 저장하지 않는다. */
-    // SHA-256 hex 는 길이가 항상 정확히 64자라 CHAR 로 고정한다 (V2 마이그레이션과 일치).
+    // SHA-256 hex 는 길이가 항상 정확히 64자라 CHAR 로 고정한다 (V5 마이그레이션과 일치).
     @Column(name = "token_hash", nullable = false, unique = true, length = 64, columnDefinition = "CHAR(64)")
     private String tokenHash;
 
