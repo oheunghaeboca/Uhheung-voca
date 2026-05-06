@@ -8,7 +8,8 @@ import java.util.List;
 @Builder
 public class QuizQuestionDto {
     private Long wordId;
+    private int questionNumber;
     private String meaning;
-    private List<String> options;
-    private String answer;
+    private List<String> choices;
+    private String correctAnswer;
 }

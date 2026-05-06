@@ -23,17 +23,17 @@ public class QuizService {
         return quizWords.stream().map(correctWord -> {
             List<Word> wrongWords = wordRepository.findRandom2Excluding(correctWord.getId());
 
-            List<String> options = new ArrayList<>();
-            options.add(correctWord.getEnglish());
-            wrongWords.forEach(w -> options.add(w.getEnglish()));
-
-            Collections.shuffle(options);
+            List<String> choices = new ArrayList<>();
+            choices.add(correctWord.getEnglish());
+            wrongWords.forEach(w -> choices.add(w.getEnglish()));
+            Collections.shuffle(choices);
 
             return QuizQuestionDto.builder()
                     .wordId(correctWord.getId())
+                    .questionNumber(quizWords.indexOf(correctWord) + 1)
                     .meaning(correctWord.getKorean())
-                    .options(options)
-                    .answer(correctWord.getEnglish())
+                    .choices(choices)
+                    .correctAnswer(correctWord.getEnglish())
                     .build();
         }).collect(Collectors.toList());
     }
