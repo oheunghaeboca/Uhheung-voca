@@ -9,7 +9,7 @@ import java.util.List;
 public class QuizQuestionDto {
     private Long wordId;
     private int questionNumber;
-    private String meaning;
+    private String prompt;
     private List<String> choices;
     private String correctAnswer;
 }

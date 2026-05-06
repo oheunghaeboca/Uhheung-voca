@@ -31,7 +31,7 @@ public class QuizService {
             return QuizQuestionDto.builder()
                     .wordId(correctWord.getId())
                     .questionNumber(quizWords.indexOf(correctWord) + 1)
-                    .meaning(correctWord.getKorean())
+                    .prompt(correctWord.getKorean())   // meaning → prompt 로 변경!
                     .choices(choices)
                     .correctAnswer(correctWord.getEnglish())
                     .build();
