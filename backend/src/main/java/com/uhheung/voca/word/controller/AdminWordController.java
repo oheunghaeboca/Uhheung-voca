@@ -10,12 +10,6 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
-// [개발 임시] 현재 SecurityConfig의 .anyRequest().permitAll() 로 인증 없이 접근 가능.
-// JWT 도입 후 처리 방법 (둘 중 하나 선택):
-//   방법 A — SecurityConfig에서 경로 수준으로 제어:
-//     .requestMatchers("/api/admin/**").hasRole("ADMIN")
-//   방법 B — 메서드 수준으로 제어 (@EnableMethodSecurity 활성화 필요):
-//     각 핸들러에 @PreAuthorize("hasRole('ADMIN')") 추가
 @RestController
 @RequestMapping("/api/admin/words")
 @RequiredArgsConstructor
@@ -23,18 +17,22 @@ public class AdminWordController {
 
     private final WordService wordService;
 
+    // 단어를 생성한다.
     @PostMapping
     public ResponseEntity<WordResponse> createWord(@Valid @RequestBody WordCreateRequest req) {
         return ResponseEntity.status(HttpStatus.CREATED).body(wordService.create(req));
     }
 
+    // 단어를 수정한다.
     @PatchMapping("/{wordId}")
     public ResponseEntity<WordResponse> updateWord(
             @PathVariable Long wordId,
-            @RequestBody WordUpdateRequest req) {
+            @Valid @RequestBody WordUpdateRequest req
+    ) {
         return ResponseEntity.ok(wordService.update(wordId, req));
     }
 
+    // 단어를 삭제한다.
     @DeleteMapping("/{wordId}")
     public ResponseEntity<Void> deleteWord(@PathVariable Long wordId) {
         wordService.delete(wordId);
