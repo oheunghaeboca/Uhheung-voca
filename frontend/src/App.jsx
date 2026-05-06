@@ -1,14 +1,20 @@
-import { BrowserRouter, Routes, Route } from "react-router-dom";
-import QuizPage from "./pages/QuizPage";
+import { ThemeProvider } from 'styled-components';
+import { RouterProvider } from 'react-router-dom';
+import { theme } from './styles/theme';
+import { GlobalStyle } from './styles/GlobalStyle';
+import { router } from './router';
+import { AuthProvider } from './contexts/AuthContext';
+import { ToastProvider } from './contexts/ToastContext';
 
-function App() {
+export default function App() {
   return (
-      <BrowserRouter>
-        <Routes>
-          <Route path="/quiz" element={<QuizPage />} />
-        </Routes>
-      </BrowserRouter>
+    <ThemeProvider theme={theme}>
+      <GlobalStyle />
+      <AuthProvider>
+        <ToastProvider>
+          <RouterProvider router={router} />
+        </ToastProvider>
+      </AuthProvider>
+    </ThemeProvider>
   );
 }
-
-export default App;
