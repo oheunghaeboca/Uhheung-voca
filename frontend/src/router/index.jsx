@@ -27,7 +27,7 @@ import FlashcardPage from '../pages/word/FlashcardPage.jsx';
 export const router = createBrowserRouter([
   { path: '/', element: <LandingPage /> },
   { path: '/login', element: <LoginPage /> },
-  { path: '/signup', element: <SignupPage /> },
+  { path: '/signup', element: <LoginPage /> },
   { path: '/flashcard', element: <FlashcardPage /> },
   {
     element: (

@@ -8,14 +8,17 @@ export default function WordListPage() {
   const [filters, setFilters] = useState({ page: 1, size: 20 });
   const { data } = useWords(filters);
 
+  const words = Array.isArray(data) ? data : data?.items ?? data?.content ?? [];
+  const totalPages = Array.isArray(data) ? 1 : data?.totalPages ?? 1;
+
   return (
     <div>
       <h1>단어 목록</h1>
       <WordFilterBar filters={filters} onChange={(f) => setFilters({ ...f, page: 1 })} />
-      <WordList items={data?.items ?? data?.content ?? []} />
+      <WordList items={words} />
       <Pagination
         page={filters.page}
-        totalPages={data?.totalPages ?? 1}
+        totalPages={totalPages}
         onChange={(page) => setFilters((f) => ({ ...f, page }))}
       />
     </div>
