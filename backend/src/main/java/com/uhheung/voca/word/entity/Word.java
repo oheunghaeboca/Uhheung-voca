@@ -29,11 +29,17 @@ public class Word {
     @Column(nullable = false, length = 20)
     private String level;
 
+    @Column(length = 20)
+    private String part;
+
     @Column(nullable = false, length = 10)
     private String type;
 
     @Column(length = 300)
     private String example;
+
+    @Column(name = "example_translation", length = 300)
+    private String exampleTranslation;
 
     @CreationTimestamp
     @Column(name = "created_at", nullable = false, updatable = false)
@@ -44,11 +50,26 @@ public class Word {
     private LocalDateTime updatedAt;
 
     @Builder
-    private Word(String english, String korean, String level, String type, String example) {
+    private Word(String english, String korean, String level, String part,
+                 String type, String example, String exampleTranslation) {
         this.english = english;
         this.korean = korean;
         this.level = level;
+        this.part = part;
         this.type = type;
         this.example = example;
+        this.exampleTranslation = exampleTranslation;
+    }
+
+    // PATCH 시 null인 필드는 기존 값 유지
+    public void update(String english, String korean, String level, String part,
+                       String type, String example, String exampleTranslation) {
+        if (english != null) this.english = english;
+        if (korean != null) this.korean = korean;
+        if (level != null) this.level = level;
+        if (part != null) this.part = part;
+        if (type != null) this.type = type;
+        if (example != null) this.example = example;
+        if (exampleTranslation != null) this.exampleTranslation = exampleTranslation;
     }
 }

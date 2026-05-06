@@ -13,6 +13,7 @@ import BookmarkPage from '../pages/bookmark/BookmarkPage.jsx';
 import WrongNotePage from '../pages/wrongnote/WrongNotePage.jsx';
 import StatsPage from '../pages/stats/StatsPage.jsx';
 import RankingPage from '../pages/ranking/RankingPage.jsx';
+import FlashcardPage from '../pages/word/FlashcardPage.jsx';
 
 /**
  * 라우트 구조:
@@ -26,6 +27,8 @@ import RankingPage from '../pages/ranking/RankingPage.jsx';
 export const router = createBrowserRouter([
   { path: '/', element: <LandingPage /> },
   { path: '/login', element: <LoginPage /> },
+  { path: '/signup', element: <SignupPage /> },
+  { path: '/flashcard', element: <FlashcardPage /> },
   {
     element: (
       <ProtectedRoute>

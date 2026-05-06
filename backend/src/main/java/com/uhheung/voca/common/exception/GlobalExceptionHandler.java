@@ -77,6 +77,12 @@ public class GlobalExceptionHandler {
      * 디버깅용으로 풀 스택트레이스는 로그에 남기지만, 클라이언트에는 일반 메시지만 — 내부
      * 정보(DB 스키마, 파일 경로 등)가 절대 새지 않도록 한다.
      */
+    @ExceptionHandler(IllegalArgumentException.class)
+    public ResponseEntity<ErrorResponse> handleIllegalArgument(IllegalArgumentException e) {
+        return ResponseEntity.status(ErrorCode.NOT_FOUND.getStatus())
+                .body(ErrorResponse.of(404, ErrorCode.NOT_FOUND.getCode(), e.getMessage()));
+    }
+
     @ExceptionHandler(Exception.class)
     public ResponseEntity<ErrorResponse> handleUnknown(Exception e) {
         log.error("unhandled exception", e);
