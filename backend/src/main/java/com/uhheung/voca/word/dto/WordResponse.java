@@ -3,7 +3,7 @@ package com.uhheung.voca.word.dto;
 import com.uhheung.voca.word.entity.Word;
 
 public record WordResponse(
-        Long wordId,
+        Long id,
         String english,
         String korean,
         String level,
