@@ -28,8 +28,7 @@ public enum ErrorCode {
     /** 보호된 엔드포인트인데 토큰이 없거나 유효하지 않음. */
     UNAUTHORIZED(HttpStatus.UNAUTHORIZED, "UNAUTHORIZED", "인증이 필요합니다."),
 
-    /** 로그인 실패. "사용자 없음" 과 "비밀번호 불일치" 모두 같은 메시지를 사용해
-     *  username 열거 공격을 막는다. */
+    /** 로그인 실패. "사용자 없음" 과 "비밀번호 불일치" 모두 같은 메시지를 사용해 username 열거 공격을 막는다. */
     INVALID_CREDENTIALS(HttpStatus.UNAUTHORIZED, "INVALID_CREDENTIALS", "아이디 또는 비밀번호가 올바르지 않습니다."),
 
     /** 토큰 서명 불일치 / 만료 / 구조 깨짐. */
@@ -43,13 +42,14 @@ public enum ErrorCode {
 
     /** 리소스 조회 실패. */
     NOT_FOUND(HttpStatus.NOT_FOUND, "NOT_FOUND", "리소스를 찾을 수 없습니다."),
-<<<<<<< HEAD
-    USER_NOT_FOUND(HttpStatus.NOT_FOUND, "USER_NOT_FOUND", "존재하지 않는 사용자입니다."),
-    WORD_NOT_FOUND(HttpStatus.NOT_FOUND, "WORD_NOT_FOUND", "존재하지 않는 단어입니다."),
-=======
 
-        /** 이미 존재하는 username 으로 회원가입 시도. */
-        >>>>>>> origin/feat/auth
+    /** 존재하지 않는 사용자 참조. */
+    USER_NOT_FOUND(HttpStatus.NOT_FOUND, "USER_NOT_FOUND", "존재하지 않는 사용자입니다."),
+
+    /** 존재하지 않는 단어 참조. */
+    WORD_NOT_FOUND(HttpStatus.NOT_FOUND, "WORD_NOT_FOUND", "존재하지 않는 단어입니다."),
+
+    /** 이미 존재하는 username 으로 회원가입 시도. */
     DUPLICATE_USERNAME(HttpStatus.CONFLICT, "DUPLICATE_USERNAME", "이미 존재하는 username 입니다."),
 
     /** 예상치 못한 서버 에러. 실제 원인은 로그에 남기고 응답에는 일반 메시지만. */
