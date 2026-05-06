@@ -1,8 +1,9 @@
 import { useNavigate } from 'react-router-dom';
 import styled, { keyframes } from 'styled-components';
+import { useAuth } from '../../hooks/useAuth';
 
 const MOCK = {
-  user: { name: '김지우', attendanceDays: 22 },
+  attendanceDays: 22,
   progress: {
     words: { done: 48, total: 100 },
     quiz:  { done: 6,  total: 10  },
@@ -22,7 +23,16 @@ const MOCK = {
 
 export default function DashboardPage() {
   const navigate = useNavigate();
-  const { user, progress, cards, stats } = MOCK;
+  const { user, logout } = useAuth();
+  const { attendanceDays, progress, cards, stats } = MOCK;
+
+  // 닉네임 우선, 없으면 username, 둘 다 없으면 빈 문자열.
+  const displayName = user?.nickname || user?.username || '';
+
+  const handleLogout = () => {
+    logout();
+    navigate('/login', { replace: true });
+  };
 
   const wordPct = Math.round((progress.words.done / progress.words.total) * 100);
   const quizPct = Math.round((progress.quiz.done  / progress.quiz.total)  * 100);
@@ -34,12 +44,11 @@ export default function DashboardPage() {
       <Header>
         <Logo>🐯 어흥해보카</Logo>
         <HeaderCenter>
-          <AttendBadge>🏆 {user.attendanceDays}일 출석</AttendBadge>
-          <Greeting>안녕하세요, <strong>{user.name}</strong>님!</Greeting>
+          <AttendBadge>🏆 {attendanceDays}일 출석</AttendBadge>
+          <Greeting>안녕하세요, <strong>{displayName}</strong>님!</Greeting>
         </HeaderCenter>
         <HeaderBtns>
-          <GhostBtn onClick={() => navigate('/mypage')}>마이페이지</GhostBtn>
-          <OutlineBtn onClick={() => navigate('/login')}>로그아웃</OutlineBtn>
+          <OutlineBtn onClick={handleLogout}>로그아웃</OutlineBtn>
         </HeaderBtns>
       </Header>
 
@@ -154,17 +163,6 @@ const Greeting = styled.p`
 `;
 
 const HeaderBtns = styled.div`display: flex; gap: 8px;`;
-
-const GhostBtn = styled.button`
-  background: none;
-  border: none;
-  font-size: 13px;
-  color: #B07040;
-  cursor: pointer;
-  padding: 6px 12px;
-  border-radius: 8px;
-  &:hover { background: #FFF0DC; }
-`;
 
 const OutlineBtn = styled.button`
   background: none;
