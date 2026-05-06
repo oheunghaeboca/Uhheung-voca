@@ -10,8 +10,8 @@ export default function QuizPage() {
     const [loading, setLoading] = useState(true);
 
     useEffect(() => {
-        axios.get("/api/quiz")
-            .then(res => setQuestions(res.data))
+        axios.get("/api/quizzes")
+            .then(res => setQuestions(res.data.questions))
             .finally(() => setLoading(false));
     }, []);
 
