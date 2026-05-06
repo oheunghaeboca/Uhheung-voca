@@ -17,11 +17,11 @@ export default function QuizPage() {
 
     const handleSelect = (option) => {
         if (selected !== null) return;
-        const isCorrect = option === questions[current].answer;
+        const isCorrect = option === questions[current].correctAnswer;
         setSelected(option);
         setResults(prev => [...prev, {
-            meaning: questions[current].meaning,
-            answer: questions[current].answer,
+            prompt: questions[current].prompt,
+            correctAnswer: questions[current].correctAnswer,
             chosen: option,
             correct: isCorrect,
         }]);
@@ -55,9 +55,9 @@ export default function QuizPage() {
     return (
         <div>
             <p>{current + 1} / {questions.length}</p>
-            <h2>{q.meaning}</h2>
+            <h2>{q.prompt}</h2>
             <div>
-                {q.options.map(opt => (
+                {q.choices.map(opt => (
                     <button key={opt} onClick={() => handleSelect(opt)}>
                         {opt}
                     </button>
