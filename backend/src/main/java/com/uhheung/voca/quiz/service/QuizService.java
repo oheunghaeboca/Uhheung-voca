@@ -1,6 +1,7 @@
 package com.uhheung.voca.quiz.service;
 
 import com.uhheung.voca.quiz.dto.QuizQuestionDto;
+import com.uhheung.voca.quiz.dto.QuizResponseDto;
 import com.uhheung.voca.quiz.repository.QuizResultDetailRepository;
 import com.uhheung.voca.quiz.repository.QuizResultRepository;
 import com.uhheung.voca.word.entity.Word;
@@ -23,30 +24,47 @@ public class QuizService {
     private final QuizResultDetailRepository quizResultDetailRepository;
     private final WordRepository wordRepository;
 
-    // 랜덤 20문항 생성: 정답 1개 + 오답 2개를 섞어 객관식 보기 구성
-    public List<QuizQuestionDto> generateQuiz() {
+    // 랜덤 20문항 생성: type에 따라 뜻→영단어 또는 영단어→뜻 퀴즈 구성
+    public QuizResponseDto generateQuiz(String type) {
         List<Word> quizWords = wordRepository.findRandom20();
 
-        return quizWords.stream().map(correctWord -> {
+        List<QuizQuestionDto> questions = quizWords.stream().map(correctWord -> {
             List<Word> wrongWords = wordRepository.findRandom2Excluding(correctWord.getId());
 
             List<String> choices = new ArrayList<>();
-            choices.add(correctWord.getEnglish());
-            wrongWords.forEach(w -> choices.add(w.getEnglish()));
-            Collections.shuffle(choices);
 
-            return QuizQuestionDto.builder()
-                    .wordId(correctWord.getId())
-                    .questionNumber(quizWords.indexOf(correctWord) + 1)
-                    .prompt(correctWord.getKorean())
-                    .choices(choices)
-                    .correctAnswer(correctWord.getEnglish())
-                    .build();
+            if ("WORD_TO_MEANING".equals(type)) {
+                // 영단어→뜻: prompt=영단어, choices=한국어 뜻
+                choices.add(correctWord.getKorean());
+                wrongWords.forEach(w -> choices.add(w.getKorean()));
+                Collections.shuffle(choices);
+
+                return QuizQuestionDto.builder()
+                        .wordId(correctWord.getId())
+                        .questionNumber(quizWords.indexOf(correctWord) + 1)
+                        .prompt(correctWord.getEnglish())
+                        .choices(choices)
+                        .correctAnswer(correctWord.getKorean())
+                        .build();
+            } else {
+                // 뜻→영단어 (기본): prompt=한국어 뜻, choices=영단어
+                choices.add(correctWord.getEnglish());
+                wrongWords.forEach(w -> choices.add(w.getEnglish()));
+                Collections.shuffle(choices);
+
+                return QuizQuestionDto.builder()
+                        .wordId(correctWord.getId())
+                        .questionNumber(quizWords.indexOf(correctWord) + 1)
+                        .prompt(correctWord.getKorean())
+                        .choices(choices)
+                        .correctAnswer(correctWord.getEnglish())
+                        .build();
+            }
         }).collect(Collectors.toList());
-    }
 
-    // TODO: start(userId, QuizStartRequest) → 문제 생성 (출처: API_명세서.md 참조)
-    // TODO: submit(userId, QuizSubmitRequest) → 채점 + QuizResult/QuizResultDetail 저장
-    // TODO: results(userId, pageable)
-    // TODO: result(userId, resultId)
+        return QuizResponseDto.builder()
+                .quizType(type)
+                .questions(questions)
+                .build();
+    }
 }

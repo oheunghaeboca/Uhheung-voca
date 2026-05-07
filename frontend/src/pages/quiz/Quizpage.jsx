@@ -1,445 +1,240 @@
-import { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
-import axios from 'axios';
-import styled, { keyframes } from 'styled-components';
-
-const ACCENT = '#F6841F';
-const GUIDE  = '이 영단어의 뜻으로 알맞은 것은?';
-
-const fadeUp = keyframes`
-  from { opacity: 0; transform: translateY(8px); }
-  to   { opacity: 1; transform: translateY(0); }
-`;
+import { useState, useEffect, useContext } from "react";
+import { useNavigate } from "react-router-dom";
+import axios from "axios";
+import { quizApi } from "../../api/quiz";
+import { AuthContext } from "../../contexts/AuthContext";
 
 export default function QuizPage() {
   const navigate = useNavigate();
+  const { user } = useContext(AuthContext);
+  const [quizType, setQuizType] = useState(null);
   const [questions, setQuestions] = useState([]);
-  const [current, setCurrent]     = useState(0);
-  const [selected, setSelected]   = useState(null);
-  const [results, setResults]     = useState([]);
-  const [done, setDone]           = useState(false);
-  const [loading, setLoading]     = useState(true);
+  const [current, setCurrent] = useState(0);
+  const [selected, setSelected] = useState(null);
+  const [results, setResults] = useState([]);
+  const [done, setDone] = useState(false);
+  const [loading, setLoading] = useState(false);
 
   useEffect(() => {
-    axios.get('/api/quizzes')
-      .then(res => setQuestions(res.data.questions))
-      .finally(() => setLoading(false));
-  }, []);
+    if (!quizType) return;
+    const fetchQuiz = async () => {
+      setLoading(true);
+      try {
+        const res = await axios.get(`/api/quizzes?type=${quizType}`);
+        setQuestions(res.data.questions);
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchQuiz();
+  }, [quizType]);
 
   const handleSelect = (option) => {
-    if (selected !== null) return;
-    const isCorrect = option === questions[current].correctAnswer;
     setSelected(option);
-    setResults(prev => [...prev, {
-      prompt: questions[current].prompt,
-      correctAnswer: questions[current].correctAnswer,
-      chosen: option,
-      correct: isCorrect,
-    }]);
+    const isCorrect = option === questions[current].correctAnswer;
+    setResults(prev => {
+      const updated = [...prev];
+      updated[current] = {
+        prompt: questions[current].prompt,
+        correctAnswer: questions[current].correctAnswer,
+        chosen: option,
+        correct: isCorrect,
+      };
+      return updated;
+    });
   };
 
-  const handleNext = () => {
+  const handleNext = async () => {
+    if (!selected) return;
     if (current + 1 >= questions.length) {
-      setDone(true);
+      const finalResults = [...results];
+      finalResults[current] = {
+        prompt: questions[current].prompt,
+        correctAnswer: questions[current].correctAnswer,
+        chosen: selected,
+        correct: selected === questions[current].correctAnswer,
+      };
+      const correctCount = finalResults.filter(r => r.correct).length;
+      try {
+        const saved = await quizApi.saveResult({
+          userId: user?.id,
+          quizType: quizType,
+          totalQuestions: questions.length,
+          correctCount: correctCount,
+          score: Math.round(correctCount / questions.length * 100),
+          details: questions.map((q, i) => ({
+            wordId: q.wordId,
+            questionNumber: q.questionNumber,
+            userAnswer: finalResults[i]?.chosen ?? "",
+            correctAnswer: q.correctAnswer,
+            isCorrect: finalResults[i]?.correct ?? false,
+          }))
+        });
+        navigate(`/quiz/results/${saved.quizResultId}`);
+      } catch {
+        setDone(true);
+      }
     } else {
       setCurrent(c => c + 1);
       setSelected(null);
     }
   };
 
-  const handleRetry = () => {
+  const reset = () => {
+    setQuizType(null);
+    setQuestions([]);
     setCurrent(0);
     setSelected(null);
     setResults([]);
     setDone(false);
   };
 
-  if (loading) return <FullCenter>🐯 문제를 불러오는 중...</FullCenter>;
-  if (!questions.length) return <FullCenter>단어 데이터가 없습니다.</FullCenter>;
-
-  const total = questions.length;
-  const q     = questions[current];
-  const pct   = ((current + 1) / total) * 100;
-
-  if (done) {
-    const score  = results.filter(r => r.correct).length;
-    const wrongs = results.filter(r => !r.correct);
+  if (!quizType) {
     return (
-      <Page>
-        <Container>
-          <ResultBox>
-            <ResultEmoji>🐯</ResultEmoji>
-            <ResultTitle>퀴즈 완료!</ResultTitle>
-            <ResultScore>{score} / {total}문제 정답</ResultScore>
-            <ResultRate>{Math.round((score / total) * 100)}% 정답률</ResultRate>
+        <div style={{ minHeight: "100vh", background: "#fff", padding: 16 }}>
+          <div style={{ maxWidth: 640, margin: "0 auto" }}>
+            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 32 }}>
+              <button onClick={() => window.history.back()} style={{ background: "none", border: "none", cursor: "pointer", fontSize: 14, color: "#666" }}>
+                ← 나가기
+              </button>
+              <div style={{ display: "flex", alignItems: "center", gap: 8, fontWeight: "bold", color: "#FF6B35" }}>
+                🐯 퀴즈
+              </div>
+              <div style={{ width: 60 }} />
+            </div>
 
-            {wrongs.length === 0 ? (
-              <PerfectMsg>완벽해요! 모두 맞혔어요 🎉</PerfectMsg>
-            ) : (
-              <WrongSection>
-                <WrongHeader>틀린 문제 ({wrongs.length}개)</WrongHeader>
-                {wrongs.map((r, i) => (
-                  <WrongItem key={i}>
-                    <WrongWord>{r.prompt}</WrongWord>
-                    <WrongAnswerRow>
-                      <AnswerBadge $wrong>✗ {r.chosen}</AnswerBadge>
-                      <AnswerArrow>→</AnswerArrow>
-                      <AnswerBadge>✓ {r.correctAnswer}</AnswerBadge>
-                    </WrongAnswerRow>
-                  </WrongItem>
-                ))}
-              </WrongSection>
-            )}
+            <div style={{ background: "white", border: "1px solid #e5e7eb", borderRadius: 16, padding: "32px 24px", boxShadow: "0 2px 12px rgba(0,0,0,0.06)" }}>
+              <h2 style={{ textAlign: "center", fontSize: 24, fontWeight: "bold", marginBottom: 8 }}>퀴즈 유형 선택</h2>
+              <p style={{ textAlign: "center", color: "#999", marginBottom: 32, fontSize: 14 }}>원하는 퀴즈 유형을 선택하세요</p>
 
-            <ResultBtns>
-              <RetryBtn onClick={handleRetry}>다시 풀기</RetryBtn>
-              <BackToStudyBtn onClick={() => navigate('/flashcard')}>단어 학습으로</BackToStudyBtn>
-            </ResultBtns>
-          </ResultBox>
-        </Container>
-      </Page>
+              <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
+                <div onClick={() => setQuizType("MEANING_TO_WORD")}
+                     style={{ border: "2px solid #e5e7eb", borderRadius: 12, padding: "24px", cursor: "pointer", display: "flex", alignItems: "center", gap: 16 }}
+                     onMouseEnter={e => e.currentTarget.style.borderColor = "#FF6B35"}
+                     onMouseLeave={e => e.currentTarget.style.borderColor = "#e5e7eb"}>
+                  <div style={{ width: 48, height: 48, borderRadius: 8, background: "#fff5f2", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 20, fontWeight: "bold", color: "#FF6B35" }}>한</div>
+                  <span style={{ color: "#999", fontSize: 18 }}>→</span>
+                  <div style={{ width: 48, height: 48, borderRadius: 8, background: "#eff6ff", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 20, fontWeight: "bold", color: "#3b82f6" }}>A</div>
+                  <div style={{ marginLeft: 8 }}>
+                    <div style={{ fontWeight: "bold", marginBottom: 4 }}>뜻 보고 영어 맞히기</div>
+                    <div style={{ fontSize: 13, color: "#999" }}>한국어 뜻을 보고 영어 단어를 선택합니다</div>
+                  </div>
+                </div>
+
+                <div onClick={() => setQuizType("WORD_TO_MEANING")}
+                     style={{ border: "2px solid #e5e7eb", borderRadius: 12, padding: "24px", cursor: "pointer", display: "flex", alignItems: "center", gap: 16 }}
+                     onMouseEnter={e => e.currentTarget.style.borderColor = "#FF6B35"}
+                     onMouseLeave={e => e.currentTarget.style.borderColor = "#e5e7eb"}>
+                  <div style={{ width: 48, height: 48, borderRadius: 8, background: "#eff6ff", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 20, fontWeight: "bold", color: "#3b82f6" }}>A</div>
+                  <span style={{ color: "#999", fontSize: 18 }}>→</span>
+                  <div style={{ width: 48, height: 48, borderRadius: 8, background: "#fff5f2", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 20, fontWeight: "bold", color: "#FF6B35" }}>한</div>
+                  <div style={{ marginLeft: 8 }}>
+                    <div style={{ fontWeight: "bold", marginBottom: 4 }}>영어 보고 뜻 맞히기</div>
+                    <div style={{ fontSize: 13, color: "#999" }}>영어 단어를 보고 한국어 뜻을 선택합니다</div>
+                  </div>
+                </div>
+              </div>
+              <p style={{ textAlign: "center", fontSize: 13, color: "#999", marginTop: 24 }}>총 20문제가 출제됩니다</p>
+            </div>
+          </div>
+        </div>
     );
   }
 
+  if (loading) return (
+      <div style={{ display: "flex", minHeight: "100vh", alignItems: "center", justifyContent: "center", color: "#999" }}>
+        로딩 중...
+      </div>
+  );
+
+  if (done) {
+    const score = results.filter(r => r.correct).length;
+    return (
+        <div style={{ minHeight: "100vh", background: "#fff", padding: 16 }}>
+          <div style={{ maxWidth: 640, margin: "0 auto", textAlign: "center", paddingTop: 60 }}>
+            <div style={{ fontSize: 48, marginBottom: 16 }}>🐯</div>
+            <h2 style={{ fontSize: 28, fontWeight: "bold", marginBottom: 8 }}>퀴즈 완료!</h2>
+            <p style={{ fontSize: 48, fontWeight: "bold", color: "#FF6B35", margin: "16px 0" }}>
+              {Math.round(score / results.length * 100)}점
+            </p>
+            <p style={{ color: "#666", marginBottom: 32 }}>{results.length}문제 중 {score}문제 정답</p>
+            <button onClick={reset} style={{ width: "100%", maxWidth: 400, padding: 16, background: "#FF6B35", color: "white", border: "none", borderRadius: 12, fontSize: 16, fontWeight: "bold", cursor: "pointer" }}>
+              다시 풀기
+            </button>
+          </div>
+        </div>
+    );
+  }
+
+  if (!questions.length) return <p>단어 데이터가 없습니다.</p>;
+
+  const q = questions[current];
+  const progress = ((current + 1) / questions.length) * 100;
+
   return (
-    <Page>
-      <Container>
-        <Header>
-          <BackBtn onClick={() => navigate(-1)}>← 뒤로가기</BackBtn>
-          <HeaderCenter>
-            <HeaderTitle>단어 퀴즈</HeaderTitle>
-            <LevelBadge>TOEIC</LevelBadge>
-          </HeaderCenter>
-          <ProgressText>{current + 1} / {total}</ProgressText>
-        </Header>
+      <div style={{ minHeight: "100vh", background: "#fff", padding: 16 }}>
+        <div style={{ maxWidth: 640, margin: "0 auto" }}>
+          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 32 }}>
+            <button onClick={reset} style={{ background: "none", border: "none", cursor: "pointer", fontSize: 14, color: "#666" }}>
+              ← 나가기
+            </button>
+            <div style={{ display: "flex", alignItems: "center", gap: 8, fontWeight: "bold", color: "#FF6B35" }}>
+              🐯 퀴즈
+              <span style={{ background: "#fff5f2", color: "#FF6B35", fontSize: 12, padding: "2px 8px", borderRadius: 20, fontWeight: "normal" }}>
+                            {quizType === "MEANING_TO_WORD" ? "한→영" : "영→한"}
+                        </span>
+            </div>
+            <div style={{ fontSize: 14, color: "#666" }}>
+              <span style={{ fontWeight: "bold", color: "#333" }}>{current + 1}</span> / {questions.length}
+            </div>
+          </div>
 
-        <ProgTrack>
-          <ProgFill $pct={pct} />
-        </ProgTrack>
+          <div style={{ width: "100%", height: 8, background: "#f1f3f5", borderRadius: 4, marginBottom: 32 }}>
+            <div style={{ height: "100%", background: "#FF6B35", borderRadius: 4, width: `${progress}%`, transition: "width 0.3s" }} />
+          </div>
 
-        <QuizCard key={current}>
-          <GuideText>{GUIDE}</GuideText>
-          <Word>{q.prompt}</Word>
-          <ChoiceList>
-            {q.choices.map((opt, i) => (
-              <ChoiceBtn
-                key={opt}
-                type="button"
-                $selected={selected === opt}
-                onClick={() => handleSelect(opt)}
-                disabled={selected !== null && selected !== opt}
-              >
-                <NumBadge $selected={selected === opt}>{i + 1}</NumBadge>
-                <ChoiceText>{opt}</ChoiceText>
-              </ChoiceBtn>
-            ))}
-          </ChoiceList>
-        </QuizCard>
+          <div style={{ background: "white", border: "1px solid #e5e7eb", borderRadius: 16, padding: 32, marginBottom: 24, boxShadow: "0 2px 12px rgba(0,0,0,0.06)", textAlign: "center" }}>
+            <p style={{ fontSize: 13, color: "#999", marginBottom: 16 }}>
+              {quizType === "MEANING_TO_WORD" ? "다음 뜻에 해당하는 영단어는?" : "다음 영단어의 뜻은?"}
+            </p>
+            <h2 style={{ fontSize: 32, fontWeight: "bold", color: "#FF6B35", margin: 0 }}>{q.prompt}</h2>
 
-        <NextBtn onClick={handleNext} disabled={selected === null}>
-          {current + 1 >= total ? '결과 보기' : '다음 문제 →'}
-        </NextBtn>
-      </Container>
-    </Page>
+            <div style={{ display: "flex", flexDirection: "column", gap: 12, marginTop: 24 }}>
+              {q.choices.map((opt, index) => (
+                  <button key={opt} onClick={() => handleSelect(opt)}
+                          style={{
+                            display: "flex", alignItems: "center", gap: 12,
+                            width: "100%", padding: "16px 20px",
+                            border: `2px solid ${selected === opt ? "#FF6B35" : "#e5e7eb"}`,
+                            borderRadius: 12,
+                            background: selected === opt ? "#fff5f2" : "white",
+                            cursor: "pointer", fontSize: 16, textAlign: "left",
+                            transition: "all 0.2s"
+                          }}>
+                                <span style={{
+                                  width: 32, height: 32, borderRadius: "50%",
+                                  background: selected === opt ? "#FF6B35" : "#f1f3f5",
+                                  color: selected === opt ? "white" : "#666",
+                                  display: "flex", alignItems: "center", justifyContent: "center",
+                                  fontSize: 14, fontWeight: "bold", flexShrink: 0
+                                }}>{index + 1}</span>
+                    {opt}
+                  </button>
+              ))}
+            </div>
+          </div>
+
+          <button onClick={handleNext} disabled={!selected}
+                  style={{
+                    width: "100%", padding: 16,
+                    background: selected ? "#FF6B35" : "#ccc",
+                    color: "white", border: "none", borderRadius: 12,
+                    fontSize: 16, fontWeight: "bold",
+                    cursor: selected ? "pointer" : "not-allowed"
+                  }}>
+            {current + 1 >= questions.length ? "결과 보기" : "다음 문제"}
+          </button>
+        </div>
+      </div>
   );
 }
-
-/* ── 레이아웃 ── */
-
-const Page = styled.div`
-  min-height: 100vh;
-  background: #FFF8F2;
-  display: flex;
-  justify-content: center;
-  font-family: 'Pretendard', 'Noto Sans KR', sans-serif;
-  padding: 0 16px;
-`;
-
-const Container = styled.div`
-  width: 100%;
-  max-width: 448px;
-  padding: 28px 0 60px;
-  display: flex;
-  flex-direction: column;
-`;
-
-const FullCenter = styled.div`
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  height: 100vh;
-  font-size: 16px;
-  color: #B07040;
-  font-family: 'Pretendard', sans-serif;
-  background: #FFF8F2;
-`;
-
-/* ── 헤더 ── */
-
-const Header = styled.div`
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  margin-bottom: 14px;
-`;
-
-const BackBtn = styled.button`
-  background: #fff;
-  border: 1.5px solid #F6D8B8;
-  border-radius: 10px;
-  padding: 7px 14px;
-  font-size: 13px;
-  font-weight: 600;
-  color: #B0926A;
-  cursor: pointer;
-  white-space: nowrap;
-  transition: border-color .15s, color .15s;
-  &:hover { border-color: ${ACCENT}; color: ${ACCENT}; }
-`;
-
-const HeaderCenter = styled.div`
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 4px;
-`;
-
-const HeaderTitle = styled.span`
-  font-size: 15px;
-  font-weight: 800;
-  color: #1F2933;
-`;
-
-const LevelBadge = styled.span`
-  font-size: 10px;
-  font-weight: 700;
-  color: ${ACCENT};
-  background: #FFF4E6;
-  border: 1px solid #FFD49A;
-  border-radius: 9999px;
-  padding: 2px 10px;
-  letter-spacing: .04em;
-`;
-
-const ProgressText = styled.span`
-  font-size: 13px;
-  font-weight: 700;
-  color: ${ACCENT};
-  white-space: nowrap;
-`;
-
-/* ── 진행 바 ── */
-
-const ProgTrack = styled.div`
-  width: 100%;
-  height: 6px;
-  background: #FFE4C4;
-  border-radius: 9999px;
-  overflow: hidden;
-  margin-bottom: 24px;
-`;
-
-const ProgFill = styled.div`
-  height: 100%;
-  width: ${({ $pct }) => $pct}%;
-  background: linear-gradient(90deg, ${ACCENT}, #FFB347);
-  border-radius: 9999px;
-  transition: width .4s ease;
-`;
-
-/* ── 퀴즈 카드 ── */
-
-const QuizCard = styled.div`
-  background: #fff;
-  border: 1.5px solid #F6D8B8;
-  border-radius: 24px;
-  padding: 32px 24px 28px;
-  box-shadow: 0 6px 28px rgba(216, 106, 12, 0.10);
-  animation: ${fadeUp} .3s ease;
-`;
-
-const GuideText = styled.p`
-  font-size: 13px;
-  color: #9AA5B1;
-  text-align: center;
-  margin-bottom: 16px;
-`;
-
-const Word = styled.h2`
-  font-size: 42px;
-  font-weight: 800;
-  color: ${ACCENT};
-  text-align: center;
-  letter-spacing: -.5px;
-  margin-bottom: 32px;
-`;
-
-const ChoiceList = styled.div`
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
-`;
-
-const ChoiceBtn = styled.button`
-  width: 100%;
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  background: ${({ $selected }) => ($selected ? '#FFF4E6' : '#FAFAFA')};
-  border: 1.5px solid ${({ $selected }) => ($selected ? ACCENT : '#EDE8E2')};
-  border-radius: 14px;
-  padding: 14px 18px;
-  cursor: ${({ disabled }) => (disabled ? 'default' : 'pointer')};
-  transition: background .15s, border-color .15s, transform .1s;
-  &:hover:not(:disabled) {
-    background: #FFF4E6;
-    border-color: #FFB347;
-    transform: translateX(2px);
-  }
-`;
-
-const NumBadge = styled.span`
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  width: 28px;
-  height: 28px;
-  border-radius: 50%;
-  background: ${({ $selected }) => ($selected ? ACCENT : '#F0EBE4')};
-  color: ${({ $selected }) => ($selected ? '#fff' : '#B0926A')};
-  font-size: 13px;
-  font-weight: 700;
-  flex-shrink: 0;
-  transition: background .15s, color .15s;
-`;
-
-const ChoiceText = styled.span`
-  font-size: 15px;
-  font-weight: 600;
-  color: #1F2933;
-  text-align: left;
-`;
-
-/* ── 다음 문제 버튼 ── */
-
-const NextBtn = styled.button`
-  margin-top: 16px;
-  width: 100%;
-  background: ${({ disabled }) => (disabled ? '#F6D8B8' : ACCENT)};
-  color: ${({ disabled }) => (disabled ? '#C8A882' : '#fff')};
-  border: none;
-  border-radius: 16px;
-  padding: 18px 0;
-  font-size: 16px;
-  font-weight: 700;
-  cursor: ${({ disabled }) => (disabled ? 'default' : 'pointer')};
-  transition: opacity .15s, transform .1s;
-  &:hover:not(:disabled) { opacity: .9; transform: translateY(-1px); }
-`;
-
-/* ── 결과 화면 ── */
-
-const ResultBox = styled.div`
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 12px;
-  margin-top: 80px;
-  animation: ${fadeUp} .4s ease;
-`;
-
-const ResultEmoji   = styled.div`font-size: 64px;`;
-const ResultTitle   = styled.h2`font-size: 24px; font-weight: 800; color: #1F2933;`;
-const ResultScore   = styled.p`font-size: 18px; font-weight: 700; color: ${ACCENT};`;
-const ResultRate    = styled.p`font-size: 14px; color: #B07040; background: #FFF3E0; border-radius: 12px; padding: 10px 24px;`;
-
-const PerfectMsg = styled.p`
-  font-size: 15px;
-  font-weight: 700;
-  color: #16A34A;
-  background: #F0FDF4;
-  border-radius: 12px;
-  padding: 12px 24px;
-`;
-
-const WrongSection = styled.div`
-  width: 100%;
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
-  margin-top: 4px;
-`;
-
-const WrongHeader = styled.h3`
-  font-size: 14px;
-  font-weight: 700;
-  color: #B07040;
-  padding-bottom: 8px;
-  border-bottom: 1.5px solid #F6D8B8;
-`;
-
-const WrongItem = styled.div`
-  background: #fff;
-  border: 1.5px solid #F6D8B8;
-  border-radius: 14px;
-  padding: 14px 18px;
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-`;
-
-const WrongWord = styled.span`font-size: 18px; font-weight: 800; color: ${ACCENT};`;
-
-const WrongAnswerRow = styled.div`
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  flex-wrap: wrap;
-`;
-
-const AnswerBadge = styled.span`
-  font-size: 13px;
-  font-weight: 600;
-  padding: 4px 12px;
-  border-radius: 9999px;
-  background: ${({ $wrong }) => ($wrong ? '#FEF2F0' : '#F0FDF4')};
-  color: ${({ $wrong }) => ($wrong ? '#DC2626' : '#16A34A')};
-`;
-
-const AnswerArrow = styled.span`font-size: 13px; color: #9AA5B1;`;
-
-const ResultBtns = styled.div`
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
-  width: 100%;
-  margin-top: 8px;
-`;
-
-const RetryBtn = styled.button`
-  width: 100%;
-  background: ${ACCENT};
-  color: #fff;
-  border: none;
-  border-radius: 14px;
-  padding: 16px 0;
-  font-size: 15px;
-  font-weight: 700;
-  cursor: pointer;
-  transition: opacity .15s;
-  &:hover { opacity: .88; }
-`;
-
-const BackToStudyBtn = styled.button`
-  width: 100%;
-  background: #fff;
-  color: #B07040;
-  border: 2px solid #F6D8B8;
-  border-radius: 14px;
-  padding: 15px 0;
-  font-size: 15px;
-  font-weight: 600;
-  cursor: pointer;
-  transition: border-color .15s, color .15s;
-  &:hover { border-color: ${ACCENT}; color: ${ACCENT}; }
-`;

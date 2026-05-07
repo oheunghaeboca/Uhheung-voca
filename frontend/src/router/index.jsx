@@ -6,7 +6,8 @@ import LoginPage from '../pages/auth/LoginPage.jsx';
 import DashboardPage from '../pages/dashboard/DashboardPage.jsx';
 import WordListPage from '../pages/word/WordListPage.jsx';
 import WordDetailPage from '../pages/word/WordDetailPage.jsx';
-import QuizPage from '../pages/quiz/QuizPage.jsx';
+import Quizpage from '../pages/quiz/Quizpage.jsx';
+import WordToMeaningQuizPage from '../pages/quiz/WordToMeaningQuizPage.jsx';
 import QuizResultListPage from '../pages/quiz/QuizResultListPage.jsx';
 import QuizResultDetailPage from '../pages/quiz/QuizResultDetailPage.jsx';
 import BookmarkPage from '../pages/bookmark/BookmarkPage.jsx';
@@ -39,7 +40,8 @@ export const router = createBrowserRouter([
       { path: '/dashboard', element: <DashboardPage /> },
       { path: '/words', element: <WordListPage /> },
       { path: '/words/:id', element: <WordDetailPage /> },
-      { path: '/quiz', element: <QuizPage /> },
+      { path: '/quiz', element: <Quizpage /> },
+      { path: '/quiz/word-to-meaning', element: <WordToMeaningQuizPage /> },
       { path: '/quiz/results', element: <QuizResultListPage /> },
       { path: '/quiz/results/:id', element: <QuizResultDetailPage /> },
       { path: '/bookmarks', element: <BookmarkPage /> },
