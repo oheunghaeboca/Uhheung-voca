@@ -13,7 +13,7 @@ import org.springframework.web.bind.annotation.*;
 @RestController
 @RequestMapping("/api/admin/words")
 @RequiredArgsConstructor
-public class AdminWordController {
+public class   AdminWordController {
 
     private final WordService wordService;
 

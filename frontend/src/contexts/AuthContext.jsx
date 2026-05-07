@@ -104,6 +104,7 @@ export function AuthProvider({ children }) {
       user,
       status,
       isAuthenticated: status === 'authed',
+      isAdmin: user?.role === 'ADMIN',
       loading: status === 'loading',
       login,
       signup,

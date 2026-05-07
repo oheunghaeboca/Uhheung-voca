@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import styled, { keyframes, css } from 'styled-components';
 import { wordsApi } from '../../api/words';
 
@@ -39,6 +40,7 @@ const SESSION_SIZE = 20;
 const shuffle = (arr) => [...arr].sort(() => Math.random() - 0.5);
 
 export default function FlashcardPage() {
+  const navigate = useNavigate();
   const [words, setWords]               = useState([]);
   const [loading, setLoading]           = useState(true);
   const [error, setError]               = useState(null);
@@ -46,6 +48,7 @@ export default function FlashcardPage() {
   const [sessionWords, setSessionWords] = useState([]);
   const [currentIndex, setCurrentIndex] = useState(0);
   const [showMeaning, setShowMeaning]   = useState(false);
+  const [finished, setFinished]         = useState(false);
 
   useEffect(() => {
     wordsApi.list()
@@ -60,6 +63,7 @@ export default function FlashcardPage() {
     setSelectedLevel(levelKey);
     setCurrentIndex(0);
     setShowMeaning(false);
+    setFinished(false);
   };
 
   const resetToSelect = () => {
@@ -67,6 +71,7 @@ export default function FlashcardPage() {
     setSessionWords([]);
     setCurrentIndex(0);
     setShowMeaning(false);
+    setFinished(false);
   };
 
   const goNext = () => { setCurrentIndex((i) => Math.min(i + 1, sessionWords.length - 1)); setShowMeaning(false); };
@@ -81,6 +86,9 @@ export default function FlashcardPage() {
       <Page>
         <TigerBg />
         <SelectWrap>
+          <SelectTopBar>
+            <BackBtn onClick={() => navigate('/dashboard')}>← 메인으로</BackBtn>
+          </SelectTopBar>
           <Logo>🐯</Logo>
           <SelectTitle>어흥해보카 단어장</SelectTitle>
           <SelectSub>학습할 레벨을 선택하세요</SelectSub>
@@ -95,7 +103,6 @@ export default function FlashcardPage() {
                   <LvLabel $accent={lv.accent}>{lv.label}</LvLabel>
                   <LvKey>{lv.key}</LvKey>
                   <LvDesc>{lv.desc}</LvDesc>
-                  <LvMeta $accent={lv.accent}>총 {total}개 · 회당 {count}개</LvMeta>
                   <LvBtn $accent={lv.accent}>학습 시작 →</LvBtn>
                 </LevelCard>
               );
@@ -110,7 +117,6 @@ export default function FlashcardPage() {
   const lv      = LEVELS.find((l) => l.key === selectedLevel);
   const current = sessionWords[currentIndex];
   const isLast  = currentIndex === sessionWords.length - 1;
-  const isDone  = isLast && showMeaning;
   const pct     = ((currentIndex + 1) / sessionWords.length) * 100;
 
   return (
@@ -158,15 +164,17 @@ export default function FlashcardPage() {
           )}
         </Card>
 
-        {isDone ? (
+        {finished ? (
           <DoneBox>
             <DoneTiger>🐯</DoneTiger>
-            <DoneMsg>{SESSION_SIZE}개 학습 완료!</DoneMsg>
+            <DoneMsg>{sessionWords.length}개 학습 완료!</DoneMsg>
             <DoneSub>어흥~ 잘 했어요!</DoneSub>
+            <DoneMotivation>꾸준히 하면 반드시 목표 점수에 도달할 수 있어요. 오늘도 수고했어요!</DoneMotivation>
             <DoneBtns>
-              <DoneRetry $accent={lv.accent} onClick={() => startSession(selectedLevel)}>다시 학습 🔄</DoneRetry>
-              <DoneOther onClick={resetToSelect}>다른 레벨</DoneOther>
+              <DoneRetry $accent={lv.accent} onClick={() => startSession(selectedLevel)}>다시 학습하기</DoneRetry>
+              <DoneQuiz onClick={() => navigate('/quiz', { state: { words: sessionWords } })}>퀴즈 풀러가기 →</DoneQuiz>
             </DoneBtns>
+            <DoneOther onClick={resetToSelect}>다른 레벨 선택</DoneOther>
           </DoneBox>
         ) : (
           <Nav>
@@ -179,7 +187,11 @@ export default function FlashcardPage() {
                   return <Dot key={idx} $active={idx === currentIndex} $accent={lv.accent} />;
                 })}
             </Dots>
-            <NavBtn onClick={goNext} disabled={isLast}>다음 →</NavBtn>
+            {isLast && showMeaning ? (
+              <NavBtn onClick={() => setFinished(true)}>완료</NavBtn>
+            ) : (
+              <NavBtn onClick={goNext} disabled={isLast}>다음 →</NavBtn>
+            )}
           </Nav>
         )}
       </StudyWrap>
@@ -236,6 +248,13 @@ const StudyWrap = styled.div`
 `;
 
 /* ────── 레벨 선택 ────── */
+const SelectTopBar = styled.div`
+  width: 100%;
+  display: flex;
+  align-items: center;
+  margin-bottom: 24px;
+`;
+
 const Logo = styled.div`font-size: 56px; margin-bottom: 8px;`;
 
 const SelectTitle = styled.h1`
@@ -496,11 +515,12 @@ const DoneBox = styled.div`
   animation: ${fadeUp} .4s ease;
 `;
 
-const DoneTiger = styled.div`font-size: 64px;`;
-const DoneMsg   = styled.p`font-size: 22px; font-weight: 800; color: #2D1B0E;`;
-const DoneSub   = styled.p`font-size: 15px; color: #B07040;`;
+const DoneTiger      = styled.div`font-size: 64px;`;
+const DoneMsg        = styled.p`font-size: 22px; font-weight: 800; color: #2D1B0E;`;
+const DoneSub        = styled.p`font-size: 15px; color: #B07040;`;
+const DoneMotivation = styled.p`font-size: 14px; color: #B07040; text-align: center; line-height: 1.6; max-width: 320px; background: #FFF3E0; border-radius: 12px; padding: 12px 20px;`;
 
-const DoneBtns  = styled.div`display: flex; gap: 12px; margin-top: 8px;`;
+const DoneBtns  = styled.div`display: flex; gap: 10px; margin-top: 8px; flex-wrap: wrap; justify-content: center;`;
 
 const DoneRetry = styled.button`
   background: ${({ $accent }) => $accent};
@@ -515,17 +535,32 @@ const DoneRetry = styled.button`
   &:hover { opacity: .88; }
 `;
 
-const DoneOther = styled.button`
+const DoneQuiz = styled.button`
   background: #fff;
-  color: #B07040;
-  border: 2px solid #F6D8B8;
+  color: #F6841F;
+  border: 2px solid #F6841F;
   border-radius: 12px;
   padding: 12px 28px;
   font-size: 15px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: background .15s, color .15s;
+  &:hover { background: #FFF4E6; }
+`;
+
+const DoneOther = styled.button`
+  background: transparent;
+  color: #B0926A;
+  border: none;
+  border-radius: 12px;
+  padding: 8px 20px;
+  font-size: 14px;
   font-weight: 600;
   cursor: pointer;
-  transition: border-color .15s, color .15s;
-  &:hover { border-color: #F6841F; color: #F6841F; }
+  text-decoration: underline;
+  text-underline-offset: 3px;
+  transition: color .15s;
+  &:hover { color: #F6841F; }
 `;
 
 const FullCenter = styled.div`
