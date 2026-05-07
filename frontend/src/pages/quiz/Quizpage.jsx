@@ -1,31 +1,10 @@
-import { useState } from 'react';
-import { useLocation, useNavigate } from 'react-router-dom';
+import { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
+import axios from 'axios';
 import styled, { keyframes } from 'styled-components';
 
 const ACCENT = '#F6841F';
-
-const FALLBACK_DATA = [
-  { id: 1, word: 'abundant',  guide: '이 영단어의 뜻으로 알맞은 것은?', choices: ['풍부한',   '부족한',     '겸손한'],      answer: 0 },
-  { id: 2, word: 'ambiguous', guide: '이 영단어의 뜻으로 알맞은 것은?', choices: ['명확한',   '모호한',     '거친'],        answer: 1 },
-  { id: 3, word: 'concise',   guide: '이 영단어의 뜻으로 알맞은 것은?', choices: ['장황한',   '무관한',     '간결한'],      answer: 2 },
-  { id: 4, word: 'diligent',  guide: '이 영단어의 뜻으로 알맞은 것은?', choices: ['부지런한', '게으른',     '교활한'],      answer: 0 },
-  { id: 5, word: 'eloquent',  guide: '이 영단어의 뜻으로 알맞은 것은?', choices: ['침묵하는', '말을 잘하는', '소란스러운'], answer: 1 },
-];
-
-function buildQuestions(words) {
-  const shuffled = [...words].sort(() => Math.random() - 0.5);
-  return shuffled.map((word) => {
-    const wrongPool = words
-      .filter((w) => w.id !== word.id)
-      .sort(() => Math.random() - 0.5)
-      .slice(0, 2)
-      .map((w) => w.korean);
-    const correctIdx = Math.floor(Math.random() * 3);
-    const choices = [...wrongPool];
-    choices.splice(correctIdx, 0, word.korean);
-    return { id: word.id, word: word.english, guide: '이 영단어의 뜻으로 알맞은 것은?', choices, answer: correctIdx };
-  });
-}
+const GUIDE  = '이 영단어의 뜻으로 알맞은 것은?';
 
 const fadeUp = keyframes`
   from { opacity: 0; transform: translateY(8px); }
@@ -34,54 +13,57 @@ const fadeUp = keyframes`
 
 export default function QuizPage() {
   const navigate = useNavigate();
-  const location = useLocation();
+  const [questions, setQuestions] = useState([]);
+  const [current, setCurrent]     = useState(0);
+  const [selected, setSelected]   = useState(null);
+  const [results, setResults]     = useState([]);
+  const [done, setDone]           = useState(false);
+  const [loading, setLoading]     = useState(true);
 
-  const makeQuestions = () => {
-    const passed = location.state?.words;
-    return passed?.length >= 3 ? buildQuestions(passed) : FALLBACK_DATA;
-  };
+  useEffect(() => {
+    axios.get('/api/quizzes')
+      .then(res => setQuestions(res.data.questions))
+      .finally(() => setLoading(false));
+  }, []);
 
-  const [questions, setQuestions] = useState(makeQuestions);
-  const [currentIndex, setCurrentIndex] = useState(0);
-  // answers: { [questionIndex]: choiceIndex } — 문제별 선택 답안 저장
-  const [answers, setAnswers] = useState({});
-  const [done, setDone] = useState(false);
-
-  const total    = questions.length;
-  const q        = questions[currentIndex];
-  const selected = answers[currentIndex] ?? null;
-  const pct      = ((currentIndex + 1) / total) * 100;
-
-  // 이미 선택한 답도 다시 클릭해 변경 가능
-  const handleSelect = (idx) => {
-    setAnswers((prev) => ({ ...prev, [currentIndex]: idx }));
+  const handleSelect = (option) => {
+    if (selected !== null) return;
+    const isCorrect = option === questions[current].correctAnswer;
+    setSelected(option);
+    setResults(prev => [...prev, {
+      prompt: questions[current].prompt,
+      correctAnswer: questions[current].correctAnswer,
+      chosen: option,
+      correct: isCorrect,
+    }]);
   };
 
   const handleNext = () => {
-    if (currentIndex + 1 >= total) {
+    if (current + 1 >= questions.length) {
       setDone(true);
     } else {
-      setCurrentIndex((c) => c + 1);
+      setCurrent(c => c + 1);
+      setSelected(null);
     }
   };
 
-  const handlePrev = () => {
-    setCurrentIndex((c) => Math.max(0, c - 1));
-  };
-
   const handleRetry = () => {
-    setQuestions(makeQuestions());
-    setCurrentIndex(0);
-    setAnswers({});
+    setCurrent(0);
+    setSelected(null);
+    setResults([]);
     setDone(false);
   };
 
-  if (done) {
-    const score  = questions.filter((q, i) => answers[i] === q.answer).length;
-    const wrongs = questions
-      .map((q, i) => ({ ...q, userAnswer: answers[i] ?? null }))
-      .filter((q) => q.userAnswer !== q.answer);
+  if (loading) return <FullCenter>🐯 문제를 불러오는 중...</FullCenter>;
+  if (!questions.length) return <FullCenter>단어 데이터가 없습니다.</FullCenter>;
 
+  const total = questions.length;
+  const q     = questions[current];
+  const pct   = ((current + 1) / total) * 100;
+
+  if (done) {
+    const score  = results.filter(r => r.correct).length;
+    const wrongs = results.filter(r => !r.correct);
     return (
       <Page>
         <Container>
@@ -96,15 +78,13 @@ export default function QuizPage() {
             ) : (
               <WrongSection>
                 <WrongHeader>틀린 문제 ({wrongs.length}개)</WrongHeader>
-                {wrongs.map((q) => (
-                  <WrongItem key={q.id}>
-                    <WrongWord>{q.word}</WrongWord>
+                {wrongs.map((r, i) => (
+                  <WrongItem key={i}>
+                    <WrongWord>{r.prompt}</WrongWord>
                     <WrongAnswerRow>
-                      <AnswerBadge $wrong>
-                        ✗ {q.userAnswer !== null ? q.choices[q.userAnswer] : '미응답'}
-                      </AnswerBadge>
+                      <AnswerBadge $wrong>✗ {r.chosen}</AnswerBadge>
                       <AnswerArrow>→</AnswerArrow>
-                      <AnswerBadge>✓ {q.choices[q.answer]}</AnswerBadge>
+                      <AnswerBadge>✓ {r.correctAnswer}</AnswerBadge>
                     </WrongAnswerRow>
                   </WrongItem>
                 ))}
@@ -130,39 +110,35 @@ export default function QuizPage() {
             <HeaderTitle>단어 퀴즈</HeaderTitle>
             <LevelBadge>TOEIC</LevelBadge>
           </HeaderCenter>
-          <ProgressText>{currentIndex + 1} / {total}</ProgressText>
+          <ProgressText>{current + 1} / {total}</ProgressText>
         </Header>
 
         <ProgTrack>
           <ProgFill $pct={pct} />
         </ProgTrack>
 
-        <QuizCard key={q.id}>
-          <Guide>{q.guide}</Guide>
-          <Word>{q.word}</Word>
+        <QuizCard key={current}>
+          <GuideText>{GUIDE}</GuideText>
+          <Word>{q.prompt}</Word>
           <ChoiceList>
-            {q.choices.map((choice, i) => (
+            {q.choices.map((opt, i) => (
               <ChoiceBtn
-                key={i}
+                key={opt}
                 type="button"
-                $selected={selected === i}
-                onClick={() => handleSelect(i)}
+                $selected={selected === opt}
+                onClick={() => handleSelect(opt)}
+                disabled={selected !== null && selected !== opt}
               >
-                <NumBadge $selected={selected === i}>{i + 1}</NumBadge>
-                <ChoiceText>{choice}</ChoiceText>
+                <NumBadge $selected={selected === opt}>{i + 1}</NumBadge>
+                <ChoiceText>{opt}</ChoiceText>
               </ChoiceBtn>
             ))}
           </ChoiceList>
         </QuizCard>
 
-        <NavRow>
-          <PrevBtn onClick={handlePrev} disabled={currentIndex === 0}>
-            ← 이전
-          </PrevBtn>
-          <NextBtn onClick={handleNext} disabled={selected === null}>
-            {currentIndex + 1 >= total ? '결과 보기' : '다음 문제 →'}
-          </NextBtn>
-        </NavRow>
+        <NextBtn onClick={handleNext} disabled={selected === null}>
+          {current + 1 >= total ? '결과 보기' : '다음 문제 →'}
+        </NextBtn>
       </Container>
     </Page>
   );
@@ -185,6 +161,17 @@ const Container = styled.div`
   padding: 28px 0 60px;
   display: flex;
   flex-direction: column;
+`;
+
+const FullCenter = styled.div`
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  height: 100vh;
+  font-size: 16px;
+  color: #B07040;
+  font-family: 'Pretendard', sans-serif;
+  background: #FFF8F2;
 `;
 
 /* ── 헤더 ── */
@@ -271,7 +258,7 @@ const QuizCard = styled.div`
   animation: ${fadeUp} .3s ease;
 `;
 
-const Guide = styled.p`
+const GuideText = styled.p`
   font-size: 13px;
   color: #9AA5B1;
   text-align: center;
@@ -302,9 +289,9 @@ const ChoiceBtn = styled.button`
   border: 1.5px solid ${({ $selected }) => ($selected ? ACCENT : '#EDE8E2')};
   border-radius: 14px;
   padding: 14px 18px;
-  cursor: pointer;
+  cursor: ${({ disabled }) => (disabled ? 'default' : 'pointer')};
   transition: background .15s, border-color .15s, transform .1s;
-  &:hover {
+  &:hover:not(:disabled) {
     background: #FFF4E6;
     border-color: #FFB347;
     transform: translateX(2px);
@@ -333,37 +320,11 @@ const ChoiceText = styled.span`
   text-align: left;
 `;
 
-/* ── 하단 네비게이션 ── */
-
-const NavRow = styled.div`
-  display: flex;
-  gap: 10px;
-  margin-top: 16px;
-`;
-
-const PrevBtn = styled.button`
-  background: #fff;
-  color: #B0926A;
-  border: 1.5px solid #F6D8B8;
-  border-radius: 16px;
-  padding: 18px 20px;
-  font-size: 15px;
-  font-weight: 600;
-  cursor: pointer;
-  white-space: nowrap;
-  transition: border-color .15s, color .15s;
-  &:disabled {
-    opacity: 0.35;
-    cursor: default;
-  }
-  &:hover:not(:disabled) {
-    border-color: ${ACCENT};
-    color: ${ACCENT};
-  }
-`;
+/* ── 다음 문제 버튼 ── */
 
 const NextBtn = styled.button`
-  flex: 1;
+  margin-top: 16px;
+  width: 100%;
   background: ${({ disabled }) => (disabled ? '#F6D8B8' : ACCENT)};
   color: ${({ disabled }) => (disabled ? '#C8A882' : '#fff')};
   border: none;
@@ -391,44 +352,6 @@ const ResultEmoji   = styled.div`font-size: 64px;`;
 const ResultTitle   = styled.h2`font-size: 24px; font-weight: 800; color: #1F2933;`;
 const ResultScore   = styled.p`font-size: 18px; font-weight: 700; color: ${ACCENT};`;
 const ResultRate    = styled.p`font-size: 14px; color: #B07040; background: #FFF3E0; border-radius: 12px; padding: 10px 24px;`;
-
-const ResultBtns = styled.div`
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
-  width: 100%;
-  margin-top: 8px;
-`;
-
-const RetryBtn = styled.button`
-  width: 100%;
-  background: ${ACCENT};
-  color: #fff;
-  border: none;
-  border-radius: 14px;
-  padding: 16px 0;
-  font-size: 15px;
-  font-weight: 700;
-  cursor: pointer;
-  transition: opacity .15s;
-  &:hover { opacity: .88; }
-`;
-
-const BackToStudyBtn = styled.button`
-  width: 100%;
-  background: #fff;
-  color: #B07040;
-  border: 2px solid #F6D8B8;
-  border-radius: 14px;
-  padding: 15px 0;
-  font-size: 15px;
-  font-weight: 600;
-  cursor: pointer;
-  transition: border-color .15s, color .15s;
-  &:hover { border-color: ${ACCENT}; color: ${ACCENT}; }
-`;
-
-/* ── 오답 목록 ── */
 
 const PerfectMsg = styled.p`
   font-size: 15px;
@@ -465,11 +388,7 @@ const WrongItem = styled.div`
   gap: 8px;
 `;
 
-const WrongWord = styled.span`
-  font-size: 18px;
-  font-weight: 800;
-  color: ${ACCENT};
-`;
+const WrongWord = styled.span`font-size: 18px; font-weight: 800; color: ${ACCENT};`;
 
 const WrongAnswerRow = styled.div`
   display: flex;
@@ -487,7 +406,40 @@ const AnswerBadge = styled.span`
   color: ${({ $wrong }) => ($wrong ? '#DC2626' : '#16A34A')};
 `;
 
-const AnswerArrow = styled.span`
-  font-size: 13px;
-  color: #9AA5B1;
+const AnswerArrow = styled.span`font-size: 13px; color: #9AA5B1;`;
+
+const ResultBtns = styled.div`
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  width: 100%;
+  margin-top: 8px;
+`;
+
+const RetryBtn = styled.button`
+  width: 100%;
+  background: ${ACCENT};
+  color: #fff;
+  border: none;
+  border-radius: 14px;
+  padding: 16px 0;
+  font-size: 15px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: opacity .15s;
+  &:hover { opacity: .88; }
+`;
+
+const BackToStudyBtn = styled.button`
+  width: 100%;
+  background: #fff;
+  color: #B07040;
+  border: 2px solid #F6D8B8;
+  border-radius: 14px;
+  padding: 15px 0;
+  font-size: 15px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: border-color .15s, color .15s;
+  &:hover { border-color: ${ACCENT}; color: ${ACCENT}; }
 `;
