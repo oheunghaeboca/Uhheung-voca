@@ -30,6 +30,16 @@ management:
       show-details: always
       show-components: always
 
+# JWT secret never has a real value here; supply via JWT_SECRET env or application-local.yml.
+# Empty value triggers IllegalStateException at boot via JwtTokenProvider#init.
+jwt:
+  secret: "${JWT_SECRET:}"
+  access-token-validity-ms: 3600000          # 1 hour
+  refresh-token-validity-ms: 1209600000      # 14 days
+
+cors:
+  allowed-origins: http://localhost:5173
+
 logging:
   level:
     org.hibernate.SQL: debug

@@ -1,19 +1,22 @@
 package com.uhheung.voca.quiz.controller;
 
 import com.uhheung.voca.quiz.service.QuizService;
+import com.uhheung.voca.quiz.dto.QuizResponseDto;
 import lombok.RequiredArgsConstructor;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.*;
 
 @RestController
-@RequestMapping("/api/quiz")
+@RequestMapping("/api/quizzes")
 @RequiredArgsConstructor
 public class QuizController {
 
     private final QuizService quizService;
 
-    // TODO: POST /api/quiz/start
-    // TODO: POST /api/quiz/submit
-    // TODO: GET  /api/quiz/results
-    // TODO: GET  /api/quiz/results/{id}
+    // GET /api/quizzes?type=MEANING_TO_WORD 또는 ?type=WORD_TO_MEANING
+    @GetMapping
+    public ResponseEntity<QuizResponseDto> getQuiz(
+            @RequestParam(defaultValue = "MEANING_TO_WORD") String type) {
+        return ResponseEntity.ok(quizService.generateQuiz(type));
+    }
 }

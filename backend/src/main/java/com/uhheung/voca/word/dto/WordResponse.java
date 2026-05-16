@@ -7,10 +7,21 @@ public record WordResponse(
         String english,
         String korean,
         String level,
+        String part,
         String type,
-        String example
+        String example,
+        String exampleTranslation
 ) {
     public static WordResponse from(Word w) {
-        return new WordResponse(w.getId(), w.getEnglish(), w.getKorean(), w.getLevel(), w.getType(), w.getExample());
+        return new WordResponse(
+                w.getId(),
+                w.getEnglish(),
+                w.getKorean(),
+                w.getLevel(),
+                w.getPart(),
+                w.getType(),
+                w.getExample(),
+                w.getExampleTranslation()
+        );
     }
 }
