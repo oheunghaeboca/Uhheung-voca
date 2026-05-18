@@ -1,9 +1,11 @@
 import { useEffect, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import styled, { keyframes } from 'styled-components';
 import { useAuth } from '../../hooks/useAuth';
 import { dashboardApi } from '../../api/dashboard';
 
-export default function StatsPage() {
+export default function MyPage() {
+    const navigate = useNavigate();
     const { user } = useAuth();
     const [summary, setSummary] = useState(null);
     const [attendance, setAttendance] = useState([]);
@@ -20,17 +22,14 @@ export default function StatsPage() {
     const year = now.getFullYear();
     const month = now.getMonth() + 1;
     const daysInMonth = new Date(year, month, 0).getDate();
-    const attendedSet = new Set(
-        attendance.filter((a) => a.attended).map((a) => a.date)
-    );
+    const attendedSet = new Set(attendance.filter((a) => a.attended).map((a) => a.date));
     const attendanceDays = attendedSet.size;
     const averageScore = summary?.averageScore != null ? Number(summary.averageScore) : 0;
     const totalQuizzes = summary?.totalQuizzes ?? 0;
     const currentStreak = summary?.currentStreak ?? 0;
 
-    // 이번 주 출석
     const weekDays = ['월','화','수','목','금','토','일'];
-    const todayDow = now.getDay(); // 0=일
+    const todayDow = now.getDay();
     const weekAttended = weekDays.map((_, i) => {
         const diff = i - (todayDow === 0 ? 6 : todayDow - 1);
         const d = new Date(now);
@@ -48,6 +47,30 @@ export default function StatsPage() {
 
     return (
         <Page>
+            <TopBar>
+                <BackBtn onClick={() => navigate('/dashboard')}>← 돌아가기</BackBtn>
+                <PageTitle>🐯 마이페이지</PageTitle>
+                <div />
+            </TopBar>
+
+            {/* 프로필 */}
+            <Section>
+                <SectionHeader>
+                    <SectionIcon>👤</SectionIcon>
+                    <div>
+                        <SectionTitle>프로필 정보</SectionTitle>
+                        <SectionSub>나의 계정 정보를 확인하세요.</SectionSub>
+                    </div>
+                </SectionHeader>
+                <ProfileRow>
+                    <Avatar>{(user?.nickname || user?.username || '?')[0].toUpperCase()}</Avatar>
+                    <ProfileInfo>
+                        <ProfileName>{user?.nickname || user?.username}</ProfileName>
+                        <ProfileRole>{user?.role === 'ADMIN' ? '관리자' : '일반 사용자'}</ProfileRole>
+                    </ProfileInfo>
+                </ProfileRow>
+            </Section>
+
             {/* 학습 통계 */}
             <Section>
                 <SectionHeader>
@@ -81,7 +104,6 @@ export default function StatsPage() {
                     </StatCard>
                 </StatsGrid>
 
-                {/* 이번 주 출석 */}
                 <WeekTitle>이번 주 출석 현황</WeekTitle>
                 <WeekRow>
                     {weekAttended.map((w, i) => (
@@ -94,7 +116,6 @@ export default function StatsPage() {
                     ))}
                 </WeekRow>
 
-                {/* 진행 바 */}
                 <ProgressSection>
                     <ProgressRow>
                         <ProgressLabel>이달 출석</ProgressLabel>
@@ -103,7 +124,6 @@ export default function StatsPage() {
                     <ProgressTrack>
                         <ProgressFill $pct={Math.round(attendanceDays / daysInMonth * 100)} $color="#F6841F" />
                     </ProgressTrack>
-
                     <ProgressRow style={{ marginTop: 16 }}>
                         <ProgressLabel>완료한 퀴즈</ProgressLabel>
                         <ProgressCount>{totalQuizzes}회</ProgressCount>
@@ -141,24 +161,42 @@ const fadeUp = keyframes`
   from { opacity: 0; transform: translateY(12px); }
   to   { opacity: 1; transform: translateY(0); }
 `;
-
 const Page = styled.div`
   max-width: 900px; margin: 0 auto; padding: 32px 24px;
   display: flex; flex-direction: column; gap: 24px;
   animation: ${fadeUp} .4s ease;
   font-family: 'Pretendard', 'Noto Sans KR', sans-serif;
 `;
-
+const TopBar = styled.div`
+  display: flex; align-items: center; justify-content: space-between;
+`;
+const BackBtn = styled.button`
+  background: none; border: 1.5px solid #F6D8B8;
+  border-radius: 10px; padding: 7px 14px;
+  font-size: 13px; font-weight: 600; color: #B0926A; cursor: pointer;
+  &:hover { border-color: #F6841F; color: #F6841F; }
+`;
+const PageTitle = styled.h1`font-size: 20px; font-weight: 800; color: #2D1B0E;`;
 const Section = styled.div`
   background: #fff; border: 1.5px solid #F6D8B8;
   border-radius: 20px; padding: 28px;
   box-shadow: 0 2px 8px rgba(216,106,12,0.07);
 `;
-
 const SectionHeader = styled.div`display: flex; align-items: center; gap: 12px; margin-bottom: 24px;`;
 const SectionIcon = styled.div`font-size: 22px;`;
 const SectionTitle = styled.h2`font-size: 18px; font-weight: 800; color: #2D1B0E; margin: 0;`;
 const SectionSub = styled.p`font-size: 13px; color: #B07040; margin: 2px 0 0;`;
+
+const ProfileRow = styled.div`display: flex; align-items: center; gap: 16px;`;
+const Avatar = styled.div`
+  width: 56px; height: 56px; border-radius: 50%;
+  background: linear-gradient(135deg, #F6841F, #D86A0C);
+  display: flex; align-items: center; justify-content: center;
+  font-size: 22px; font-weight: 800; color: #fff;
+`;
+const ProfileInfo = styled.div``;
+const ProfileName = styled.div`font-size: 18px; font-weight: 800; color: #2D1B0E;`;
+const ProfileRole = styled.div`font-size: 13px; color: #B07040; margin-top: 4px;`;
 
 const StatsGrid = styled.div`
   display: grid; grid-template-columns: repeat(4,1fr); gap: 12px; margin-bottom: 28px;
@@ -169,10 +207,7 @@ const StatCard = styled.div`
   border-radius: 14px; padding: 20px 12px; text-align: center;
 `;
 const StatEmoji = styled.div`font-size: 22px; margin-bottom: 8px;`;
-const StatValue = styled.div`
-  font-size: 26px; font-weight: 800;
-  color: ${({ $color }) => $color ?? '#F6841F'}; margin-bottom: 4px;
-`;
+const StatValue = styled.div`font-size: 26px; font-weight: 800; color: ${({ $color }) => $color ?? '#F6841F'}; margin-bottom: 4px;`;
 const StatLabel = styled.div`font-size: 12px; color: #B07040; font-weight: 600;`;
 
 const WeekTitle = styled.h3`font-size: 14px; font-weight: 700; color: #2D1B0E; margin-bottom: 14px;`;
@@ -186,7 +221,6 @@ const WeekCircle = styled.div`
   color: ${({ $attended }) => $attended ? '#fff' : '#999'};
 `;
 const WeekLabel = styled.div`font-size: 12px; color: #B07040;`;
-
 const ProgressSection = styled.div``;
 const ProgressRow = styled.div`display: flex; justify-content: space-between; margin-bottom: 6px;`;
 const ProgressLabel = styled.span`font-size: 13px; color: #2D1B0E; font-weight: 600;`;
@@ -194,10 +228,8 @@ const ProgressCount = styled.span`font-size: 13px; color: #B07040;`;
 const ProgressTrack = styled.div`height: 8px; background: #FFF0DC; border-radius: 9999px; overflow: hidden;`;
 const ProgressFill = styled.div`
   height: 100%; width: ${({ $pct }) => $pct}%;
-  background: ${({ $color }) => $color}; border-radius: 9999px;
-  transition: width .6s ease;
+  background: ${({ $color }) => $color}; border-radius: 9999px; transition: width .6s ease;
 `;
-
 const BadgeGrid = styled.div`
   display: grid; grid-template-columns: repeat(4,1fr); gap: 12px;
   @media (max-width: 600px) { grid-template-columns: repeat(2,1fr); }
@@ -208,11 +240,5 @@ const BadgeCard = styled.div`
   border-radius: 14px; padding: 20px 12px; text-align: center;
 `;
 const BadgeIcon = styled.div`font-size: 28px; margin-bottom: 8px;`;
-const BadgeTitle = styled.div`
-  font-size: 13px; font-weight: 700;
-  color: ${({ $done }) => $done ? '#2D1B0E' : '#999'}; margin-bottom: 4px;
-`;
-const BadgeDesc = styled.div`
-  font-size: 12px;
-  color: ${({ $done }) => $done ? '#F6841F' : '#bbb'}; font-weight: 600;
-`;
+const BadgeTitle = styled.div`font-size: 13px; font-weight: 700; color: ${({ $done }) => $done ? '#2D1B0E' : '#999'}; margin-bottom: 4px;`;
+const BadgeDesc = styled.div`font-size: 12px; color: ${({ $done }) => $done ? '#F6841F' : '#bbb'}; font-weight: 600;`;
