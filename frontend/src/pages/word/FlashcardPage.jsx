@@ -1,7 +1,8 @@
 import { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import styled, { keyframes, css } from 'styled-components';
 import { wordsApi } from '../../api/words';
+import { useSpeech } from '../../hooks/useSpeech';
 
 const LEVELS = [
   {
@@ -39,8 +40,21 @@ const LEVELS = [
 const SESSION_SIZE = 20;
 const shuffle = (arr) => [...arr].sort(() => Math.random() - 0.5);
 
+const DAILY_CONFIG = {
+  key: 'DAILY',
+  label: '오늘의 학습',
+  bg: '#FFFAF5',
+  card: '#FFFBF5',
+  accent: '#F6841F',
+  border: '#FFBC80',
+  icon: '🐯',
+};
+
 export default function FlashcardPage() {
   const navigate = useNavigate();
+  const location = useLocation();
+  const { supported: speechSupported, speak } = useSpeech();
+  const preloadedWords = location.state?.words ?? [];
   const [words, setWords]               = useState([]);
   const [loading, setLoading]           = useState(true);
   const [error, setError]               = useState(null);
@@ -51,6 +65,12 @@ export default function FlashcardPage() {
   const [finished, setFinished]         = useState(false);
 
   useEffect(() => {
+    if (preloadedWords.length > 0) {
+      setSessionWords(preloadedWords);
+      setSelectedLevel('DAILY');
+      setLoading(false);
+      return;
+    }
     wordsApi.list()
       .then(setWords)
       .catch(() => setError('단어를 불러오지 못했습니다.'))
@@ -58,6 +78,13 @@ export default function FlashcardPage() {
   }, []);
 
   const startSession = (levelKey) => {
+    if (levelKey === 'DAILY') {
+      setSessionWords(preloadedWords);
+      setCurrentIndex(0);
+      setShowMeaning(false);
+      setFinished(false);
+      return;
+    }
     const filtered = shuffle(words.filter((w) => w.level === levelKey)).slice(0, SESSION_SIZE);
     setSessionWords(filtered);
     setSelectedLevel(levelKey);
@@ -67,6 +94,10 @@ export default function FlashcardPage() {
   };
 
   const resetToSelect = () => {
+    if (preloadedWords.length > 0) {
+      navigate('/dashboard');
+      return;
+    }
     setSelectedLevel(null);
     setSessionWords([]);
     setCurrentIndex(0);
@@ -114,7 +145,7 @@ export default function FlashcardPage() {
   }
 
   /* ── 학습 ── */
-  const lv      = LEVELS.find((l) => l.key === selectedLevel);
+  const lv      = LEVELS.find((l) => l.key === selectedLevel) ?? DAILY_CONFIG;
   const current = sessionWords[currentIndex];
   const isLast  = currentIndex === sessionWords.length - 1;
   const pct     = ((currentIndex + 1) / sessionWords.length) * 100;
@@ -124,7 +155,7 @@ export default function FlashcardPage() {
       <TigerBg />
       <StudyWrap>
         <TopBar>
-          <BackBtn onClick={resetToSelect}>← 레벨 선택</BackBtn>
+          <BackBtn onClick={resetToSelect}>{selectedLevel === 'DAILY' ? '← 대시보드' : '← 레벨 선택'}</BackBtn>
           <TopMeta>
             <TopBadge $accent={lv.accent}>{lv.icon} {lv.label}</TopBadge>
             <TopCount>{currentIndex + 1} / {sessionWords.length}</TopCount>
@@ -143,6 +174,16 @@ export default function FlashcardPage() {
               {current.part && <PartTag>{current.part}</PartTag>}
             </Badges>
             <Word>{current.english}</Word>
+            {speechSupported && (
+              <SpeakBtn
+                $accent={lv.accent}
+                type="button"
+                aria-label="발음 듣기"
+                onClick={() => speak(current.english, 'en-US')}
+              >
+                🔊 발음 듣기
+              </SpeakBtn>
+            )}
             {!showMeaning && (
               <RevealBtn $accent={lv.accent} onClick={() => setShowMeaning(true)}>
                 뜻 보기 ▼
@@ -174,7 +215,7 @@ export default function FlashcardPage() {
               <DoneRetry $accent={lv.accent} onClick={() => startSession(selectedLevel)}>다시 학습하기</DoneRetry>
               <DoneQuiz onClick={() => navigate('/quiz', { state: { words: sessionWords } })}>퀴즈 풀러가기 →</DoneQuiz>
             </DoneBtns>
-            <DoneOther onClick={resetToSelect}>다른 레벨 선택</DoneOther>
+            <DoneOther onClick={resetToSelect}>{selectedLevel === 'DAILY' ? '대시보드로 돌아가기' : '다른 레벨 선택'}</DoneOther>
           </DoneBox>
         ) : (
           <Nav>
@@ -437,6 +478,23 @@ const RevealBtn = styled.button`
   cursor: pointer;
   transition: background .15s;
   &:hover { background: ${({ $accent }) => $accent}35; }
+`;
+
+const SpeakBtn = styled.button`
+  background: ${({ $accent }) => $accent}14;
+  color: ${({ $accent }) => $accent};
+  border: 1.5px solid ${({ $accent }) => $accent}40;
+  border-radius: 10px;
+  padding: 6px 16px;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  transition: background .15s, transform .1s;
+  &:hover { background: ${({ $accent }) => $accent}28; transform: scale(1.04); }
+  &:active { transform: scale(0.97); }
 `;
 
 const Back = styled.div`

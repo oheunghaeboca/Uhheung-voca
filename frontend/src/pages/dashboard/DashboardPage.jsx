@@ -1,6 +1,8 @@
+import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import styled, { keyframes } from 'styled-components';
 import { useAuth } from '../../hooks/useAuth';
+import { wordsApi } from '../../api/words';
 
 const MOCK = {
   attendanceDays: 22,
@@ -28,6 +30,20 @@ export default function DashboardPage() {
 
   // 닉네임 우선, 없으면 username, 둘 다 없으면 빈 문자열.
   const displayName = user?.nickname || user?.username || '';
+
+  const [dailyLoading, setDailyLoading] = useState(false);
+
+  const handleStartStudy = async () => {
+    setDailyLoading(true);
+    try {
+      const words = await wordsApi.daily();
+      navigate('/flashcard', { state: { words } });
+    } catch {
+      navigate('/flashcard');
+    } finally {
+      setDailyLoading(false);
+    }
+  };
 
   const handleLogout = () => {
     logout();
@@ -70,7 +86,9 @@ export default function DashboardPage() {
           <BannerLeft>
             <BannerTitle>TOEIC 단어<br />지금 바로 시작하세요!</BannerTitle>
             <BannerSub>매일 꾸준히 단어를 학습하고 목표 점수를 달성해보세요.</BannerSub>
-            <StartBtn onClick={() => navigate('/flashcard')}>단어 학습 시작 →</StartBtn>
+            <StartBtn onClick={handleStartStudy} disabled={dailyLoading}>
+              {dailyLoading ? '단어 불러오는 중...' : '단어 학습 시작 →'}
+            </StartBtn>
           </BannerLeft>
           <BannerTiger>🐯</BannerTiger>
         </Banner>
@@ -267,7 +285,8 @@ const StartBtn = styled.button`
   padding: 12px 28px;
   cursor: pointer;
   transition: transform .15s, box-shadow .15s;
-  &:hover { transform: translateY(-2px); box-shadow: 0 6px 20px rgba(0,0,0,.15); }
+  &:hover:not(:disabled) { transform: translateY(-2px); box-shadow: 0 6px 20px rgba(0,0,0,.15); }
+  &:disabled { opacity: .7; cursor: not-allowed; }
 `;
 
 const BannerTiger = styled.div`
