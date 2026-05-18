@@ -11,7 +11,11 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.LocalDate;
+import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
+import java.util.Random;
 
 @Service
 @RequiredArgsConstructor
@@ -33,6 +37,23 @@ public class WordService {
                 .orElseThrow(() -> new ApiException(ErrorCode.WORD_NOT_FOUND));
 
         return WordResponse.from(word);
+    }
+
+    // 오늘의 단어 20개를 레벨 비율(BASIC 10, ADVANCED 5, FREQUENT 5)로 조회한다.
+    // seed = 자정 기준 날짜 → 같은 날 동일 결과 보장
+    public List<WordResponse> getDailyWords() {
+        long seed = LocalDate.now().toEpochDay();
+
+        List<Word> words = new ArrayList<>();
+        words.addAll(wordRepository.findDailyBasicWords(seed));
+        words.addAll(wordRepository.findDailyAdvancedWords(seed));
+        words.addAll(wordRepository.findDailyFrequentWords(seed));
+
+        Collections.shuffle(words, new Random(seed));
+
+        return words.stream()
+                .map(WordResponse::from)
+                .toList();
     }
 
     // 단어를 생성한다.
