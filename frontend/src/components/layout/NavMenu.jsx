@@ -16,7 +16,6 @@ const ITEMS = [
   { to: '/quiz', label: '퀴즈' },
   { to: '/bookmarks', label: '북마크' },
   { to: '/wrong-notes', label: '오답노트' },
-  { to: '/stats', label: '통계' },
   { to: '/ranking', label: '랭킹' },
 ];
 

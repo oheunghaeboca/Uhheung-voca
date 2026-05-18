@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import styled from 'styled-components';
 import WordFilterBar from '../../components/word/WordFilterBar.jsx';
 import WordList from '../../components/word/WordList.jsx';
@@ -6,6 +6,7 @@ import WordFormModal from '../../components/word/WordFormModal.jsx';
 import Pagination from '../../components/ui/Pagination.jsx';
 import { useWords } from '../../hooks/useWords';
 import { useAuth } from '../../hooks/useAuth';
+import { bookmarksApi } from '../../api/bookmarks';
 import { wordsApi } from '../../api/words';
 
 const Header = styled.div`
@@ -48,7 +49,24 @@ export default function WordListPage() {
   const [filters, setFilters] = useState({ page: 1, size: 20 });
   const [version, setVersion] = useState(0);
   const [modal, setModal] = useState({ open: false, word: null });
+  const [bookmarkedIds, setBookmarkedIds] = useState(new Set());
+  const { user } = useAuth();
 
+  useEffect(() => {
+    if (!user?.id) return;
+    bookmarksApi.list(user.id).then((res) => {
+      const items = Array.isArray(res) ? res : [];
+      setBookmarkedIds(new Set(items.map((w) => w.id)));
+    }).catch(() => {});
+  }, [user?.id]);
+
+  const handleBookmarkToggle = (wordId) => {
+    setBookmarkedIds((prev) => {
+      const next = new Set(prev);
+      next.has(wordId) ? next.delete(wordId) : next.add(wordId);
+      return next;
+    });
+  };
   // version을 filters에 포함해 CRUD 후 자동 재조회
   const { data, loading, error } = useWords({ ...filters, _v: version });
 
@@ -91,9 +109,11 @@ export default function WordListPage() {
       {loading && <StatusText>불러오는 중...</StatusText>}
       {error && <StatusText $error>단어 목록을 불러오지 못했습니다.</StatusText>}
       <WordList
-        items={words}
-        onEdit={isAdmin ? openEdit : undefined}
-        onDelete={isAdmin ? handleDelete : undefined}
+          items={words}
+          bookmarkedIds={bookmarkedIds}
+          onBookmarkToggle={handleBookmarkToggle}
+          onEdit={isAdmin ? openEdit : undefined}
+          onDelete={isAdmin ? handleDelete : undefined}
       />
       <Pagination
         page={filters.page}
