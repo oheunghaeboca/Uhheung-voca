@@ -18,12 +18,4 @@ public interface QuizResultRepository extends JpaRepository<QuizResult, Long> {
             """, nativeQuery = true)
     TodayQuizStats findTodayStats(@Param("userId") Long userId, @Param("date") LocalDate date);
 
-    // 사용자의 특정 일자 응시 퀴즈에 포함된 distinct word_id 수를 조회한다 (PBI-12 STUDY_WORDS.current).
-    @Query(value = """
-            SELECT COUNT(DISTINCT qrd.word_id)
-            FROM quiz_result_details qrd
-            JOIN quiz_results qr ON qrd.quiz_result_id = qr.id
-            WHERE qr.user_id = :userId AND DATE(qr.submitted_at) = :date
-            """, nativeQuery = true)
-    int countDistinctWordsStudiedToday(@Param("userId") Long userId, @Param("date") LocalDate date);
 }

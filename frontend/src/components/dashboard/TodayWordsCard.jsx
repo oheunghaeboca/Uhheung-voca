@@ -9,17 +9,24 @@ export default function TodayWordsCard() {
 
   useEffect(() => {
     let mounted = true;
-    wordsApi
-      .daily()
-      .then((data) => {
-        if (mounted) setState({ loading: false, error: null, data });
-      })
-      .catch((err) => {
-        // 401 은 axios 인터셉터가 처리하므로 화면에서는 일반 에러 표시만.
-        if (mounted) setState({ loading: false, error: err, data: null });
-      });
+    const load = () => {
+      wordsApi
+        .daily()
+        .then((data) => {
+          if (mounted) setState({ loading: false, error: null, data });
+        })
+        .catch((err) => {
+          // 401 은 axios 인터셉터가 처리하므로 화면에서는 일반 에러 표시만.
+          if (mounted) setState({ loading: false, error: err, data: null });
+        });
+    };
+    load();
+    // 다른 탭/페이지에서 단어를 학습한 뒤 돌아왔을 때 추천 순서가 갱신되도록 focus 재조회.
+    const onFocus = () => load();
+    window.addEventListener('focus', onFocus);
     return () => {
       mounted = false;
+      window.removeEventListener('focus', onFocus);
     };
   }, []);
 

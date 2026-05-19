@@ -22,13 +22,18 @@ import java.time.LocalDate;
 import java.util.List;
 
 /**
- * 데일리 미션 조회 서비스.
+ * 데일리 미션 평가 서비스.
  *
- * <p>호출마다 오늘의 quiz_results / quiz_result_details 를 다시 집계하여 진척 필드를 갱신한다
- * (read-on-demand). 별도 진척 갱신 엔드포인트는 두지 않는다.
+ * <p>두 진입 경로를 노출한다:
+ * <ul>
+ *   <li>{@link #todayMission(String)} — GET /api/missions/today 의 응답 빌더.
+ *   <li>{@link #evaluateAndGrant(Long)} — 미션 충족 행위(퀴즈 제출 / 단어 학습 이벤트) 직후
+ *       호출되어 즉시 미션 진척 갱신과 필요 시 출석 부여를 수행한다. 응답 본문은 무시.
+ * </ul>
  *
- * <p>세 미션이 모두 충족되면 같은 트랜잭션 안에서 출석을 자동 부여한다.
- * 출석 INSERT 실패(UNIQUE 위반) 는 {@link AttendanceService#grant} 가 흡수한다.
+ * <p>두 경로 모두 같은 핵심 로직 {@link #refresh(Long, LocalDate)} 를 호출하여
+ * "GET 응답" 과 "실시간 트리거" 의 동작 차이를 없앤다. 사용자 입장에서는
+ * 단어 한 개를 보거나 퀴즈 한 번을 제출한 직후, 다음 GET 호출이 아니라 그 즉시 출석이 부여된다.
  */
 @Service
 @RequiredArgsConstructor
@@ -44,15 +49,28 @@ public class MissionService {
     private final AttendanceService attendanceService;
 
     /**
-     * 인증된 사용자의 오늘 미션 진척 상태를 조회하고, 모두 완료되었다면 출석을 자동 부여한다.
-     * 같은 일자에 두 번 호출되어도 결과는 동일 (멱등).
+     * GET /api/missions/today 의 응답을 만든다. 같은 일자에 두 번 호출되어도 결과는 동일 (멱등).
      */
     public MissionResponse todayMission(String username) {
         User user = userRepository.findByUsername(username)
                 .orElseThrow(() -> new ApiException(ErrorCode.USER_NOT_FOUND));
-        Long userId = user.getId();
-        LocalDate today = LocalDate.now();
+        return refresh(user.getId(), LocalDate.now());
+    }
 
+    /**
+     * 미션 충족 행위(단어 학습 이벤트 기록 / 퀴즈 결과 제출) 직후에 호출되어 즉시 미션을
+     * 갱신하고 필요 시 출석을 부여한다. 호출자는 응답 본문을 사용하지 않는다.
+     * 트랜잭션은 호출자와 별개로 처리되므로 호출자 예외가 본 메서드의 부여 결과를 되돌리지 않는다.
+     */
+    public void evaluateAndGrant(Long userId) {
+        refresh(userId, LocalDate.now());
+    }
+
+    /**
+     * 미션 진척 계산과 출석 자동 부여의 단일 진실 공급원.
+     * todayMission 의 응답 빌더와 evaluateAndGrant 의 트리거가 같은 본문을 공유한다.
+     */
+    private MissionResponse refresh(Long userId, LocalDate today) {
         DailyMission mission = dailyMissionRepository.findByUserIdAndDate(userId, today)
                 .orElseGet(() -> dailyMissionRepository.save(
                         DailyMission.builder().userId(userId).date(today).build()
