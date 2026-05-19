@@ -1,9 +1,12 @@
 package com.uhheung.voca.wrongnote.service;
 
 import com.uhheung.voca.quiz.repository.QuizResultDetailRepository;
+import com.uhheung.voca.wrongnote.dto.WrongNoteResponse;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+
+import java.util.List;
 
 @Service
 @RequiredArgsConstructor
@@ -12,6 +15,15 @@ public class WrongNoteService {
 
     private final QuizResultDetailRepository quizResultDetailRepository;
 
-    // TODO: list(userId) — 사용자 오답 단어 집계
-    // TODO: retest(userId, wordIds) — 오답 기반 재테스트 시작 (퀴즈 도메인과 연계)
+    public List<WrongNoteResponse> list(Long userId) {
+        return quizResultDetailRepository.findWrongNotesByUserId(userId).stream()
+                .map(item -> new WrongNoteResponse(
+                        item.getWordId(),
+                        item.getEnglish(),
+                        item.getKorean(),
+                        item.getWrongCount(),
+                        item.getLastWrongAt()
+                ))
+                .toList();
+    }
 }
