@@ -186,6 +186,30 @@ CREATE INDEX idx_qrd_word_id ON quiz_result_details(word_id);
 - `mission.attendanceGranted` 가 `Boolean` (래퍼) 이라 `if (mission.getAttendanceGranted())` 같은 호출이 null 시 NPE 일 수 있어 `Boolean.FALSE.equals(...)` 로 작성. 사전 시나리오에 없었던 작은 안전망 — `ai_limitations_catalog.md` 의 L-05 후보로 검토.
 - PBI-11 의 위임 vs 직접 표가 6행, PBI-12 는 1행으로 압축. 압축 후에도 핵심 invariant (P1·P2·P3) 의 직접 검증 의도는 유지. `methodology_experiment.md` §5 권고 그대로 적용된 사례.
 
+### 6-B. 사후 Refining 1회 — STUDY_WORDS 정의 전환 (B-옵션)
+
+학생 명시 지시 (2026-05-20) 로 STUDY_WORDS 의 카운트 소스를 **퀴즈 응시 단어** 에서 **단어 학습 페이지 진입 이력** 으로 전환했다.
+
+**전환 사유** (대화에서 학생이 지적한 세 가지 문제):
+
+1. TAKE_QUIZ 와 트리거 동일: "퀴즈 한 번 풀고 제출" 만으로 두 미션 동시 충족 → 미션 3개 분리 의도 약화.
+2. 단어 학습 페이지(`/flashcard`, `/words/:id`)에서 단어를 봐도 카운트되지 않음 → UI 가 "단어 학습" 이라고 부르는데 실제로는 퀴즈만 카운트하는 라벨-동작 불일치.
+3. 표준 퀴즈가 20문제이므로 한 번에 자동 만점 → 미션의 점진적 진척 의미 상실.
+
+**전환 내용**:
+
+- 신규 `V7__create_word_study_events.sql` — `word_study_events(user_id, word_id, studied_at)` 테이블 + 인덱스 2개.
+- 신규 `WordStudyEvent` 엔티티 / `WordStudyEventRepository.countDistinctWordsStudiedOn` / `WordStudyService.recordView`.
+- 신규 `POST /api/words/{wordId}/view` 엔드포인트 (USER 권한, 204 No Content).
+- `MissionService` 의 `wordsStudied` 카운트 소스를 `QuizResultRepository.countDistinctWordsStudiedToday` → `WordStudyEventRepository.countDistinctWordsStudiedOn` 으로 교체. `QuizResultRepository` 의 기존 메서드는 후속 통계용으로 보존.
+- 프론트:
+  - `wordsApi.view(id)` 추가.
+  - `WordDetailPage` 의 `useEffect` 가 단어 로드 직후 `wordsApi.view(word.id)` 호출.
+  - `FlashcardPage` 의 `useEffect` 가 `sessionWords[currentIndex]?.id` 변경 시 호출 (카드 넘김마다).
+- `MissionServiceTest` 의 stub 도 새 의존성에 맞춰 갱신.
+
+**Refining 의 의미**: 사전 시나리오 (2-A) 에 등록된 위험이 아니라, **AC 의 한 줄("단어 20개 학습")의 의미가 사용자 직관과 어긋날 수 있다는 점** 을 학생이 직접 식별해 교정했다. 즉 평가축 ②(AI 한계 파악) 의 가장 강한 형태 — AI 가 학생의 결정(A 옵션 추천)을 그대로 따라갔는데, 학생이 사용자 입장에서 본 의미와 비교해 다시 결정을 뒤집은 사례. `ai_limitations_catalog.md` L-06 으로 별도 항목 신설 예정.
+
 ---
 
 ## 7. 최종 반영 여부

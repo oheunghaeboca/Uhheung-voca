@@ -9,6 +9,7 @@ import com.uhheung.voca.quiz.repository.TodayQuizStats;
 import com.uhheung.voca.user.entity.User;
 import com.uhheung.voca.user.entity.Role;
 import com.uhheung.voca.user.repository.UserRepository;
+import com.uhheung.voca.word.repository.WordStudyEventRepository;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -38,6 +39,8 @@ class MissionServiceTest {
     @Mock
     private QuizResultRepository quizResultRepository;
     @Mock
+    private WordStudyEventRepository wordStudyEventRepository;
+    @Mock
     private UserRepository userRepository;
     @Mock
     private AttendanceService attendanceService;
@@ -53,7 +56,7 @@ class MissionServiceTest {
         when(userRepository.findByUsername(eq("alice"))).thenReturn(Optional.of(user));
         when(dailyMissionRepository.findByUserIdAndDate(eq(user.getId()), any())).thenReturn(Optional.of(mission));
         when(quizResultRepository.findTodayStats(eq(user.getId()), any())).thenReturn(stats(2L, new BigDecimal("85.50")));
-        when(quizResultRepository.countDistinctWordsStudiedToday(eq(user.getId()), any())).thenReturn(20);
+        when(wordStudyEventRepository.countDistinctWordsStudiedOn(eq(user.getId()), any())).thenReturn(20);
 
         MissionResponse resp = missionService.todayMission("alice");
 
@@ -71,7 +74,7 @@ class MissionServiceTest {
         when(userRepository.findByUsername(eq("bob"))).thenReturn(Optional.of(user));
         when(dailyMissionRepository.findByUserIdAndDate(eq(user.getId()), any())).thenReturn(Optional.of(mission));
         when(quizResultRepository.findTodayStats(eq(user.getId()), any())).thenReturn(stats(3L, new BigDecimal("90.00")));
-        when(quizResultRepository.countDistinctWordsStudiedToday(eq(user.getId()), any())).thenReturn(25);
+        when(wordStudyEventRepository.countDistinctWordsStudiedOn(eq(user.getId()), any())).thenReturn(25);
 
         MissionResponse resp = missionService.todayMission("bob");
 
@@ -88,7 +91,8 @@ class MissionServiceTest {
         when(userRepository.findByUsername(eq("carol"))).thenReturn(Optional.of(user));
         when(dailyMissionRepository.findByUserIdAndDate(eq(user.getId()), any())).thenReturn(Optional.of(mission));
         when(quizResultRepository.findTodayStats(eq(user.getId()), any())).thenReturn(stats(1L, new BigDecimal("69.99")));
-        when(quizResultRepository.countDistinctWordsStudiedToday(eq(user.getId()), any())).thenReturn(20);
+        when(wordStudyEventRepository.countDistinctWordsStudiedOn(eq(user.getId()), any())).thenReturn(20);
+
 
         MissionResponse resp = missionService.todayMission("carol");
 
