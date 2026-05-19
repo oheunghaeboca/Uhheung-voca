@@ -29,3 +29,9 @@
 - **발견 경로**: PBI-11 `npm run build`
 - **영향**: dist 가 갱신되지 않으나 모듈 해석은 모두 성공 (vite 의 transforming 단계 통과). lint 는 정상 종료. 본 PBI 의 신규 파일에 lint 위반 0건.
 - **대응 패턴**: `npm run lint` 결과로 import 그래프의 유효성은 확인 가능. 실제 dist 패키징은 학생 환경 또는 CI 에서 별도 검증.
+
+## L-05 — Lombok `@Getter` 가 `Boolean` 래퍼 필드에 대해 생성하는 `getXxx()` 의 null 가능성
+
+- **발견 경로**: PBI-12 `MissionService.todayMission` 작성 시 `mission.getAttendanceGranted()` 의 null 가드 필요성 검토
+- **영향**: DailyMission 엔티티는 `@Builder` 안에서 `attendanceGranted = false` 로 초기화하므로 실제 NPE 가능성은 낮지만, 새 엔티티를 reflection 으로 stub 하거나 DB 마이그레이션 도중 nullable 컬럼이 잠시 존재할 수 있는 상황에서 위험. `if (mission.getAttendanceGranted())` 같은 직접 boolean 캐스팅이 NPE 를 발생시킬 수 있다. AI 가 즉시 풀어쓸 때 이 가드를 빠뜨리기 쉬움.
+- **대응 패턴**: `Boolean.FALSE.equals(mission.getAttendanceGranted())` 또는 `Optional.ofNullable(...).orElse(false)` 로 null-safe 비교. 본 패턴을 PBI-13 이후 prompt log 의 2-A 사전 시나리오에 포함.
