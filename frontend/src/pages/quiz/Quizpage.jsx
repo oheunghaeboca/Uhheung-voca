@@ -1,33 +1,75 @@
-import { useState, useEffect, useContext } from "react";
-import { useNavigate } from "react-router-dom";
+import { useState, useEffect, useContext, useMemo } from "react";
+import { useNavigate, useLocation } from "react-router-dom";
 import axios from "axios";
 import { quizApi } from "../../api/quiz";
 import { AuthContext } from "../../contexts/AuthContext";
 
+const shuffleArr = (arr) => [...arr].sort(() => Math.random() - 0.5);
+
+function buildQuestionsFromWords(words, type) {
+  return shuffleArr(words).map((word, idx) => {
+    const isW2M = type === 'WORD_TO_MEANING';
+    const prompt = isW2M ? word.english : word.korean;
+    const correct = isW2M ? word.korean : word.english;
+    const distractors = shuffleArr(
+      words.filter((w) => w.id !== word.id).map((w) => (isW2M ? w.korean : w.english))
+    ).slice(0, 2);
+    const choices = shuffleArr([correct, ...distractors]);
+    // word.id → wordId로 매핑 (saveResult API가 wordId를 요구)
+    return { wordId: word.id, questionNumber: idx + 1, prompt, choices, correctAnswer: correct };
+  });
+}
+
 export default function QuizPage() {
   const navigate = useNavigate();
+  const location = useLocation();
   const { user } = useContext(AuthContext);
+
+  // 진입 경로에 상관없이 학습 세션 단어를 복원:
+  // 1순위: navigate state (퀴즈 풀러가기 버튼), 2순위: sessionStorage (GNB 탭)
+  const [sessionWords] = useState(() => {
+    const stateWords = location.state?.words;
+    if (Array.isArray(stateWords) && stateWords.length >= 4) return stateWords;
+    try {
+      const raw = sessionStorage.getItem('quiz.sessionWords');
+      const parsed = raw ? JSON.parse(raw) : [];
+      return Array.isArray(parsed) && parsed.length >= 4 ? parsed : [];
+    } catch {
+      return [];
+    }
+  });
+
   const [quizType, setQuizType] = useState(null);
-  const [questions, setQuestions] = useState([]);
+  const [apiQuestions, setApiQuestions] = useState([]);
   const [current, setCurrent] = useState(0);
   const [selected, setSelected] = useState(null);
   const [results, setResults] = useState([]);
   const [done, setDone] = useState(false);
   const [loading, setLoading] = useState(false);
 
+  // 세션 단어가 있으면 클라이언트 사이드 생성, 없으면 API 응답 사용
+  const questions = useMemo(() => {
+    if (quizType && sessionWords.length >= 4) {
+      return buildQuestionsFromWords(sessionWords, quizType);
+    }
+    return apiQuestions;
+  }, [quizType, sessionWords, apiQuestions]);
+
   useEffect(() => {
-    if (!quizType) return;
+    if (!quizType || sessionWords.length >= 4) return;
+
+    // 학습 세션 없이 진입한 경우 API에서 조회
     const fetchQuiz = async () => {
       setLoading(true);
       try {
         const res = await axios.get(`/api/quizzes?type=${quizType}`);
-        setQuestions(res.data.questions);
+        setApiQuestions(res.data.questions);
       } finally {
         setLoading(false);
       }
     };
     fetchQuiz();
-  }, [quizType]);
+  }, [quizType, sessionWords]);
 
   const handleSelect = (option) => {
     setSelected(option);
@@ -80,9 +122,16 @@ export default function QuizPage() {
     }
   };
 
+  const handlePrev = () => {
+    if (current === 0) return;
+    const prevIndex = current - 1;
+    setCurrent(prevIndex);
+    setSelected(results[prevIndex]?.chosen ?? null);
+  };
+
   const reset = () => {
     setQuizType(null);
-    setQuestions([]);
+    setApiQuestions([]);
     setCurrent(0);
     setSelected(null);
     setResults([]);
@@ -134,7 +183,11 @@ export default function QuizPage() {
                   </div>
                 </div>
               </div>
-              <p style={{ textAlign: "center", fontSize: 13, color: "#999", marginTop: 24 }}>총 20문제가 출제됩니다</p>
+              <p style={{ textAlign: "center", fontSize: 13, color: "#999", marginTop: 24 }}>
+                {sessionWords.length >= 4
+                  ? `학습한 ${sessionWords.length}개 단어로 출제됩니다`
+                  : '총 20문제가 출제됩니다'}
+              </p>
             </div>
           </div>
         </div>
@@ -224,16 +277,29 @@ export default function QuizPage() {
             </div>
           </div>
 
-          <button onClick={handleNext} disabled={!selected}
-                  style={{
-                    width: "100%", padding: 16,
-                    background: selected ? "#FF6B35" : "#ccc",
-                    color: "white", border: "none", borderRadius: 12,
-                    fontSize: 16, fontWeight: "bold",
-                    cursor: selected ? "pointer" : "not-allowed"
-                  }}>
-            {current + 1 >= questions.length ? "결과 보기" : "다음 문제"}
-          </button>
+          <div style={{ display: "flex", gap: 10 }}>
+            <button onClick={handlePrev} disabled={current === 0}
+                    style={{
+                      padding: "16px 20px",
+                      background: "white", color: current === 0 ? "#ccc" : "#FF6B35",
+                      border: `2px solid ${current === 0 ? "#e5e7eb" : "#FF6B35"}`,
+                      borderRadius: 12, fontSize: 16, fontWeight: "bold",
+                      cursor: current === 0 ? "not-allowed" : "pointer",
+                      whiteSpace: "nowrap"
+                    }}>
+              ← 이전
+            </button>
+            <button onClick={handleNext} disabled={!selected}
+                    style={{
+                      flex: 1, padding: 16,
+                      background: selected ? "#FF6B35" : "#ccc",
+                      color: "white", border: "none", borderRadius: 12,
+                      fontSize: 16, fontWeight: "bold",
+                      cursor: selected ? "pointer" : "not-allowed"
+                    }}>
+              {current + 1 >= questions.length ? "결과 보기" : "다음 문제"}
+            </button>
+          </div>
         </div>
       </div>
   );

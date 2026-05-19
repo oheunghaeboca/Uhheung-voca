@@ -130,7 +130,8 @@ export default function WordCard({ word, bookmarked, onEdit, onDelete }) {
           </Tags>
         </WordInfo>
         <Actions>
-          <PronounceButton text={word?.english} />
+          <PronounceButton text={word?.english} label="미국" />
+          <PronounceButton text={word?.english} lang="en-GB" label="영국" />
           <BookmarkToggle wordId={word?.wordId ?? word?.id} bookmarked={bookmarked} />
           {onEdit && (
             <IconButton type="button" title="수정" onClick={() => onEdit(word)}>

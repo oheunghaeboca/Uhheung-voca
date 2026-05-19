@@ -43,16 +43,60 @@ const StatusText = styled.p`
   margin-bottom: ${({ theme }) => theme.spacing[3]};
 `;
 
+const LevelTabs = styled.div`
+  display: flex;
+  gap: ${({ theme }) => theme.spacing[2]};
+  margin-bottom: ${({ theme }) => theme.spacing[4]};
+`;
+
+const LevelTab = styled.button`
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 7px 18px;
+  border-radius: ${({ theme }) => theme.radius.full};
+  border: 1.5px solid ${({ $active, theme }) => $active ? theme.colors.primary[500] : theme.colors.border};
+  background: ${({ $active, theme }) => $active ? theme.colors.primary[500] : theme.colors.surface};
+  color: ${({ $active, theme }) => $active ? theme.colors.text.inverse : theme.colors.text.secondary};
+  font-size: ${({ theme }) => theme.fontSize.sm};
+  font-weight: ${({ theme }) => theme.fontWeight.bold};
+  cursor: pointer;
+  transition: all 0.15s ease;
+
+  &:hover {
+    border-color: ${({ theme }) => theme.colors.primary[500]};
+    color: ${({ $active, theme }) => $active ? theme.colors.text.inverse : theme.colors.primary[500]};
+  }
+`;
+
+const LevelTabCount = styled.span`
+  font-size: 11px;
+  font-weight: 700;
+  padding: 1px 6px;
+  border-radius: ${({ theme }) => theme.radius.full};
+  background: ${({ $active, theme }) => $active ? 'rgba(255,255,255,0.25)' : theme.colors.primary[50]};
+  color: ${({ $active, theme }) => $active ? theme.colors.text.inverse : theme.colors.primary[600]};
+`;
+
+const LEVEL_TABS = [
+  { label: '전체', value: null },
+  { label: '기초', value: 'BASIC' },
+  { label: '빈출', value: 'FREQUENT' },
+  { label: '고급', value: 'ADVANCED' },
+];
+
 export default function WordListPage() {
   const { isAdmin } = useAuth();
   const [filters, setFilters] = useState({ page: 1, size: 20 });
   const [version, setVersion] = useState(0);
   const [modal, setModal] = useState({ open: false, word: null });
+  const [levelFilter, setLevelFilter] = useState(null);
 
   // version을 filters에 포함해 CRUD 후 자동 재조회
   const { data, loading, error } = useWords({ ...filters, _v: version });
 
-  const words = Array.isArray(data) ? data : data?.items ?? data?.content ?? [];
+  const allWords = Array.isArray(data) ? data : data?.items ?? data?.content ?? [];
+  const words = levelFilter ? allWords.filter((w) => w.level === levelFilter) : allWords;
   const totalPages = Array.isArray(data) ? 1 : data?.totalPages ?? 1;
 
   const refresh = () => setVersion((v) => v + 1);
@@ -87,6 +131,20 @@ export default function WordListPage() {
         <PageTitle>단어 목록</PageTitle>
         {isAdmin && <AddButton onClick={openAdd}>+ 단어 추가</AddButton>}
       </Header>
+      <LevelTabs>
+        {LEVEL_TABS.map(({ label, value }) => (
+          <LevelTab
+            key={label}
+            $active={levelFilter === value}
+            onClick={() => { setLevelFilter(value); setFilters((f) => ({ ...f, page: 1 })); }}
+          >
+            {label}
+            <LevelTabCount $active={levelFilter === value}>
+              {value ? allWords.filter((w) => w.level === value).length : allWords.length}
+            </LevelTabCount>
+          </LevelTab>
+        ))}
+      </LevelTabs>
       <WordFilterBar filters={filters} onChange={(f) => setFilters({ ...f, page: 1 })} />
       {loading && <StatusText>불러오는 중...</StatusText>}
       {error && <StatusText $error>단어 목록을 불러오지 못했습니다.</StatusText>}

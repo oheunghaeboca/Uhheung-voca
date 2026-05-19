@@ -63,6 +63,17 @@ export default function FlashcardPage() {
   const [currentIndex, setCurrentIndex] = useState(0);
   const [showMeaning, setShowMeaning]   = useState(false);
   const [finished, setFinished]         = useState(false);
+  const [typeFilter, setTypeFilter]     = useState(null); // null=전체, 'LC', 'RC'
+
+  const displayWords = typeFilter
+    ? sessionWords.filter((w) => w.type === typeFilter)
+    : sessionWords;
+
+  const handleTypeFilter = (type) => {
+    setTypeFilter(type);
+    setCurrentIndex(0);
+    setShowMeaning(false);
+  };
 
   useEffect(() => {
     if (preloadedWords.length > 0) {
@@ -83,6 +94,7 @@ export default function FlashcardPage() {
       setCurrentIndex(0);
       setShowMeaning(false);
       setFinished(false);
+      setTypeFilter(null);
       return;
     }
     const filtered = shuffle(words.filter((w) => w.level === levelKey)).slice(0, SESSION_SIZE);
@@ -91,6 +103,7 @@ export default function FlashcardPage() {
     setCurrentIndex(0);
     setShowMeaning(false);
     setFinished(false);
+    setTypeFilter(null);
   };
 
   const resetToSelect = () => {
@@ -103,9 +116,10 @@ export default function FlashcardPage() {
     setCurrentIndex(0);
     setShowMeaning(false);
     setFinished(false);
+    setTypeFilter(null);
   };
 
-  const goNext = () => { setCurrentIndex((i) => Math.min(i + 1, sessionWords.length - 1)); setShowMeaning(false); };
+  const goNext = () => { setCurrentIndex((i) => Math.min(i + 1, displayWords.length - 1)); setShowMeaning(false); };
   const goPrev = () => { setCurrentIndex((i) => Math.max(i - 1, 0)); setShowMeaning(false); };
 
   if (loading) return <FullCenter>🐯 단어를 불러오는 중...</FullCenter>;
@@ -146,9 +160,9 @@ export default function FlashcardPage() {
 
   /* ── 학습 ── */
   const lv      = LEVELS.find((l) => l.key === selectedLevel) ?? DAILY_CONFIG;
-  const current = sessionWords[currentIndex];
-  const isLast  = currentIndex === sessionWords.length - 1;
-  const pct     = ((currentIndex + 1) / sessionWords.length) * 100;
+  const current = displayWords[currentIndex];
+  const isLast  = currentIndex === displayWords.length - 1;
+  const pct     = displayWords.length > 0 ? ((currentIndex + 1) / displayWords.length) * 100 : 0;
 
   return (
     <Page>
@@ -158,82 +172,117 @@ export default function FlashcardPage() {
           <BackBtn onClick={resetToSelect}>{selectedLevel === 'DAILY' ? '← 대시보드' : '← 레벨 선택'}</BackBtn>
           <TopMeta>
             <TopBadge $accent={lv.accent}>{lv.icon} {lv.label}</TopBadge>
-            <TopCount>{currentIndex + 1} / {sessionWords.length}</TopCount>
+            <TopCount>{displayWords.length > 0 ? currentIndex + 1 : 0} / {displayWords.length}</TopCount>
           </TopMeta>
           <Spacer />
         </TopBar>
+
+        <TypeTabs>
+          {[{ label: '전체', value: null }, { label: 'LC', value: 'LC' }, { label: 'RC', value: 'RC' }].map(({ label, value }) => (
+            <TypeTab
+              key={label}
+              $active={typeFilter === value}
+              $accent={lv.accent}
+              onClick={() => handleTypeFilter(value)}
+            >
+              {label}
+              <TypeTabCount $active={typeFilter === value} $accent={lv.accent}>
+                {value ? sessionWords.filter((w) => w.type === value).length : sessionWords.length}
+              </TypeTabCount>
+            </TypeTab>
+          ))}
+        </TypeTabs>
 
         <ProgTrack>
           <ProgFill $pct={pct} $accent={lv.accent} />
         </ProgTrack>
 
-        <Card $bg={lv.card} $border={lv.border} $expanded={showMeaning}>
-          <Front>
-            <Badges>
-              <TypeTag $type={current.type}>{current.type}</TypeTag>
-              {current.part && <PartTag>{current.part}</PartTag>}
-            </Badges>
-            <Word>{current.english}</Word>
-            {speechSupported && (
-              <SpeakBtn
-                $accent={lv.accent}
-                type="button"
-                aria-label="발음 듣기"
-                onClick={() => speak(current.english, 'en-US')}
-              >
-                🔊 발음 듣기
-              </SpeakBtn>
-            )}
-            {!showMeaning && (
-              <RevealBtn $accent={lv.accent} onClick={() => setShowMeaning(true)}>
-                뜻 보기 ▼
-              </RevealBtn>
-            )}
-          </Front>
-
-          {showMeaning && (
-            <Back>
-              <HDivider $accent={lv.accent} />
-              <Meaning>{current.korean}</Meaning>
-              {current.example && (
-                <ExBox $accent={lv.accent}>
-                  <ExEn>"{current.example}"</ExEn>
-                  {current.exampleTranslation && <ExKo>{current.exampleTranslation}</ExKo>}
-                </ExBox>
-              )}
-            </Back>
-          )}
-        </Card>
-
-        {finished ? (
-          <DoneBox>
-            <DoneTiger>🐯</DoneTiger>
-            <DoneMsg>{sessionWords.length}개 학습 완료!</DoneMsg>
-            <DoneSub>어흥~ 잘 했어요!</DoneSub>
-            <DoneMotivation>꾸준히 하면 반드시 목표 점수에 도달할 수 있어요. 오늘도 수고했어요!</DoneMotivation>
-            <DoneBtns>
-              <DoneRetry $accent={lv.accent} onClick={() => startSession(selectedLevel)}>다시 학습하기</DoneRetry>
-              <DoneQuiz onClick={() => navigate('/quiz', { state: { words: sessionWords } })}>퀴즈 풀러가기 →</DoneQuiz>
-            </DoneBtns>
-            <DoneOther onClick={resetToSelect}>{selectedLevel === 'DAILY' ? '대시보드로 돌아가기' : '다른 레벨 선택'}</DoneOther>
-          </DoneBox>
+        {displayWords.length === 0 ? (
+          <EmptyFilter>해당 유형의 단어가 없습니다.</EmptyFilter>
         ) : (
-          <Nav>
-            <NavBtn onClick={goPrev} disabled={currentIndex === 0}>← 이전</NavBtn>
-            <Dots>
-              {sessionWords
-                .slice(Math.max(0, currentIndex - 2), Math.min(sessionWords.length, currentIndex + 3))
-                .map((_, i) => {
-                  const idx = Math.max(0, currentIndex - 2) + i;
-                  return <Dot key={idx} $active={idx === currentIndex} $accent={lv.accent} />;
-                })}
-            </Dots>
-            {isLast && showMeaning ? (
-              <NavBtn onClick={() => setFinished(true)}>완료</NavBtn>
+          <>
+            <Card $bg={lv.card} $border={lv.border} $expanded={showMeaning}>
+              <Front>
+                <Badges>
+                  <TypeTag $type={current.type}>{current.type}</TypeTag>
+                  {current.part && <PartTag>{current.part}</PartTag>}
+                </Badges>
+                <Word>{current.english}</Word>
+                {speechSupported && (
+                  <SpeakBtns>
+                    <SpeakBtn
+                      $accent={lv.accent}
+                      type="button"
+                      aria-label="미국 발음 듣기"
+                      onClick={() => speak(current.english, 'en-US')}
+                    >
+                      🔊 미국
+                    </SpeakBtn>
+                    <SpeakBtn
+                      $accent={lv.accent}
+                      type="button"
+                      aria-label="영국 발음 듣기"
+                      onClick={() => speak(current.english, 'en-GB')}
+                    >
+                      🔊 영국
+                    </SpeakBtn>
+                  </SpeakBtns>
+                )}
+                {!showMeaning && (
+                  <RevealBtn $accent={lv.accent} onClick={() => setShowMeaning(true)}>
+                    뜻 보기 ▼
+                  </RevealBtn>
+                )}
+              </Front>
+
+              {showMeaning && (
+                <Back>
+                  <HDivider $accent={lv.accent} />
+                  <Meaning>{current.korean}</Meaning>
+                  {current.example && (
+                    <ExBox $accent={lv.accent}>
+                      <ExEn>"{current.example}"</ExEn>
+                      {current.exampleTranslation && <ExKo>{current.exampleTranslation}</ExKo>}
+                    </ExBox>
+                  )}
+                </Back>
+              )}
+            </Card>
+
+            {finished ? (
+              <DoneBox>
+                <DoneTiger>🐯</DoneTiger>
+                <DoneMsg>{sessionWords.length}개 학습 완료!</DoneMsg>
+                <DoneSub>어흥~ 잘 했어요!</DoneSub>
+                <DoneMotivation>꾸준히 하면 반드시 목표 점수에 도달할 수 있어요. 오늘도 수고했어요!</DoneMotivation>
+                <DoneBtns>
+                  <DoneRetry $accent={lv.accent} onClick={() => startSession(selectedLevel)}>다시 학습하기</DoneRetry>
+                  <DoneQuiz onClick={() => navigate('/quiz', { state: { words: sessionWords } })}>퀴즈 풀러가기 →</DoneQuiz>
+                </DoneBtns>
+                <DoneOther onClick={resetToSelect}>{selectedLevel === 'DAILY' ? '대시보드로 돌아가기' : '다른 레벨 선택'}</DoneOther>
+              </DoneBox>
             ) : (
-              <NavBtn onClick={goNext} disabled={isLast}>다음 →</NavBtn>
+              <Nav>
+                <NavBtn onClick={goPrev} disabled={currentIndex === 0}>← 이전</NavBtn>
+                <Dots>
+                  {displayWords
+                    .slice(Math.max(0, currentIndex - 2), Math.min(displayWords.length, currentIndex + 3))
+                    .map((_, i) => {
+                      const idx = Math.max(0, currentIndex - 2) + i;
+                      return <Dot key={idx} $active={idx === currentIndex} $accent={lv.accent} />;
+                    })}
+                </Dots>
+                {isLast && showMeaning ? (
+                  <NavBtn onClick={() => {
+                    sessionStorage.setItem('quiz.sessionWords', JSON.stringify(sessionWords));
+                    setFinished(true);
+                  }}>완료</NavBtn>
+                ) : (
+                  <NavBtn onClick={goNext} disabled={isLast}>다음 →</NavBtn>
+                )}
+              </Nav>
             )}
-          </Nav>
+          </>
         )}
       </StudyWrap>
     </Page>
@@ -401,6 +450,51 @@ const TopCount = styled.span`
 
 const Spacer = styled.div`width: 88px;`;
 
+/* ────── LC/RC 분류 탭 ────── */
+const TypeTabs = styled.div`
+  display: flex;
+  gap: 8px;
+  margin-bottom: 14px;
+  width: 100%;
+  justify-content: center;
+`;
+
+const TypeTab = styled.button`
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 6px 16px;
+  border-radius: 9999px;
+  border: 1.5px solid ${({ $active, $accent }) => $active ? $accent : '#F6D8B8'};
+  background: ${({ $active, $accent }) => $active ? $accent : '#fff'};
+  color: ${({ $active }) => $active ? '#fff' : '#B0926A'};
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  &:hover {
+    border-color: ${({ $accent }) => $accent};
+    color: ${({ $active, $accent }) => $active ? '#fff' : $accent};
+  }
+`;
+
+const TypeTabCount = styled.span`
+  font-size: 11px;
+  font-weight: 700;
+  padding: 1px 6px;
+  border-radius: 9999px;
+  background: ${({ $active }) => $active ? 'rgba(255,255,255,0.25)' : '#FFF3E0'};
+  color: ${({ $active, $accent }) => $active ? '#fff' : $accent};
+`;
+
+const EmptyFilter = styled.div`
+  margin-top: 40px;
+  font-size: 15px;
+  color: #B0926A;
+  font-weight: 600;
+  text-align: center;
+`;
+
 /* ────── 진행 바 ────── */
 const ProgTrack = styled.div`
   width: 100%;
@@ -478,6 +572,12 @@ const RevealBtn = styled.button`
   cursor: pointer;
   transition: background .15s;
   &:hover { background: ${({ $accent }) => $accent}35; }
+`;
+
+const SpeakBtns = styled.div`
+  display: flex;
+  gap: 8px;
+  justify-content: center;
 `;
 
 const SpeakBtn = styled.button`

@@ -13,7 +13,8 @@ export default function WordDetailPage() {
       <WordDetailCard word={word} />
       {word && (
         <>
-          <PronounceButton text={word.english} />
+          <PronounceButton text={word.english} label="미국" />
+          <PronounceButton text={word.english} lang="en-GB" label="영국" />
           <BookmarkToggle wordId={word.id} bookmarked={word.bookmarked} />
         </>
       )}

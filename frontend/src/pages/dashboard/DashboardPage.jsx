@@ -84,8 +84,8 @@ export default function DashboardPage() {
 
         <Banner>
           <BannerLeft>
-            <BannerTitle>TOEIC 단어<br />지금 바로 시작하세요!</BannerTitle>
-            <BannerSub>매일 꾸준히 단어를 학습하고 목표 점수를 달성해보세요.</BannerSub>
+            <BannerTitle>오늘의 단어 학습<br />하루 20개, 지금 시작!</BannerTitle>
+            <BannerSub>매일 20단어씩 꾸준히 쌓으면<br />어흥~ TOEIC 목표 점수에 닿을 수 있어요!</BannerSub>
             <StartBtn onClick={handleStartStudy} disabled={dailyLoading}>
               {dailyLoading ? '단어 불러오는 중...' : '단어 학습 시작 →'}
             </StartBtn>
