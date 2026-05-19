@@ -7,6 +7,8 @@ import com.uhheung.voca.attendance.repository.AttendanceRepository;
 import com.uhheung.voca.quiz.entity.QuizResult;
 import com.uhheung.voca.quiz.repository.QuizResultRepository;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -15,6 +17,7 @@ import java.time.LocalDate;
 import java.time.YearMonth;
 import java.util.List;
 
+@Slf4j
 @Service
 @RequiredArgsConstructor
 @Transactional
@@ -35,10 +38,7 @@ public class AttendanceService {
 
         if (score.compareTo(PASS_SCORE) < 0) {
             return new AttendanceCheckResponse(
-                    userId,
-                    today,
-                    false,
-                    score,
+                    userId, today, false, score,
                     "정답률 70% 미만으로 출석이 인정되지 않았습니다."
             );
         }
@@ -52,17 +52,30 @@ public class AttendanceService {
                     .isAttended(true)
                     .score(score)
                     .build();
-
             attendanceRepository.save(attendance);
         }
 
         return new AttendanceCheckResponse(
-                userId,
-                today,
-                true,
-                score,
+                userId, today, true, score,
                 alreadyChecked ? "이미 오늘 출석이 인정되었습니다." : "출석이 인정되었습니다."
         );
+    }
+
+    public void grant(Long userId, LocalDate date, BigDecimal score) {
+        if (attendanceRepository.findByUserIdAndDate(userId, date).isPresent()) {
+            return;
+        }
+        Attendance attendance = Attendance.builder()
+                .userId(userId)
+                .date(date)
+                .isAttended(Boolean.TRUE)
+                .score(score)
+                .build();
+        try {
+            attendanceRepository.save(attendance);
+        } catch (DataIntegrityViolationException race) {
+            log.debug("attendance UNIQUE 충돌 — 동시 호출 흡수: userId={} date={}", userId, date);
+        }
     }
 
     @Transactional(readOnly = true)

@@ -2,6 +2,7 @@ import { useNavigate } from 'react-router-dom';
 import styled, { keyframes } from 'styled-components';
 import { useAuth } from '../../hooks/useAuth';
 import TodayWordsCard from '../../components/dashboard/TodayWordsCard';
+import TodayMissionCard from '../../components/dashboard/TodayMissionCard';
 
 const MOCK = {
   attendanceDays: 22,
@@ -68,6 +69,8 @@ export default function DashboardPage() {
         </ProgressCard>
 
         <TodayWordsCard />
+
+        <TodayMissionCard />
 
         <Banner>
           <BannerLeft>
