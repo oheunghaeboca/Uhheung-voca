@@ -12,6 +12,7 @@ import com.uhheung.voca.quiz.repository.QuizResultRepository;
 import com.uhheung.voca.quiz.repository.TodayQuizStats;
 import com.uhheung.voca.user.entity.User;
 import com.uhheung.voca.user.repository.UserRepository;
+import com.uhheung.voca.word.repository.WordStudyEventRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -38,6 +39,7 @@ public class MissionService {
 
     private final DailyMissionRepository dailyMissionRepository;
     private final QuizResultRepository quizResultRepository;
+    private final WordStudyEventRepository wordStudyEventRepository;
     private final UserRepository userRepository;
     private final AttendanceService attendanceService;
 
@@ -59,7 +61,9 @@ public class MissionService {
         TodayQuizStats stats = quizResultRepository.findTodayStats(userId, today);
         int quizzesTaken = stats != null && stats.getTaken() != null ? stats.getTaken().intValue() : 0;
         BigDecimal highestScore = stats != null && stats.getTop() != null ? stats.getTop() : BigDecimal.ZERO;
-        int wordsStudied = quizResultRepository.countDistinctWordsStudiedToday(userId, today);
+        // STUDY_WORDS 는 단어 학습 페이지(WordDetail/Flashcard) 진입 이력을 카운트한다.
+        // 퀴즈 응시는 TAKE_QUIZ 미션에만 반영하여 두 미션의 트리거를 분리한다 (B-옵션, 2026-05-20 결정).
+        int wordsStudied = wordStudyEventRepository.countDistinctWordsStudiedOn(userId, today);
 
         mission.updateProgress(wordsStudied, quizzesTaken, highestScore);
 

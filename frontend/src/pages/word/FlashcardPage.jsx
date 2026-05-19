@@ -57,6 +57,16 @@ export default function FlashcardPage() {
       .finally(() => setLoading(false));
   }, []);
 
+  // 플래시카드 현재 카드의 단어를 학습 이벤트로 기록한다 (PBI-12 STUDY_WORDS 미션).
+  // 같은 단어를 다시 봐도 distinct 카운트는 1로 환산되므로 안전하다.
+  useEffect(() => {
+    const w = sessionWords[currentIndex];
+    if (!w?.id) return;
+    wordsApi.view(w.id).catch(() => {
+      // 미션 카운트 실패는 UX 차단 사유가 아니다 — 조용히 흘려보낸다.
+    });
+  }, [sessionWords, currentIndex]);
+
   const startSession = (levelKey) => {
     const filtered = shuffle(words.filter((w) => w.level === levelKey)).slice(0, SESSION_SIZE);
     setSessionWords(filtered);
