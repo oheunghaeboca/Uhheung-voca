@@ -181,6 +181,17 @@ curl -i http://localhost:8080/api/words/daily | head -5  # 401 기대
 - 환경 한계로 Gradle test 가 본 머신에서 실행 불가하여 학생 환경 의무 재검증 필요. 다만 멱등성 알고리즘은 결정적이라 코드 리뷰만으로도 산술적 검증이 가능 — 같은 seed 면 `Random` 의 시퀀스가 같다는 JDK 보증에 의존.
 - 위 표 7개 행 중 5개가 "미발생" 으로 표시된 것은 사전 시나리오를 v1 프롬프트 본문에 못박은 효과. 학생 측에서 v1 작성에 들인 인지 비용을 본 표가 회수해 준다 → `methodology_experiment.md` 에 정량화하여 기록.
 
+### 6-B. 사후 Refining 1회 — "학습 이력" 정의 통일 (2026-05-20)
+
+PBI-12 의 STUDY_WORDS 미션이 B-옵션 (`word_study_events` 기반) 으로 전환된 직후, 학생의 통합 점검에서 **PBI-11 의 추천 알고리즘은 여전히 `quiz_result_details` 기반** 이라는 모순이 발견되었다. 두 PBI 가 "학습됨" 을 정반대로 해석하는 상태였다 — PBI-11 은 퀴즈 응시 단어를 학습됨으로, PBI-12 는 학습 페이지 진입 단어를 학습됨으로.
+
+**전환 내용**:
+- `WordRepository.findDailyCandidates` 의 LEFT JOIN 서브쿼리 소스를 `quiz_result_details × quiz_results` → `word_study_events` 로 교체.
+- 메서드 javadoc 에 "학습 이력 정의는 PBI-12 의 STUDY_WORDS 와 동일" 을 명시.
+- `DailyWordService` / 컨트롤러 / 테스트 는 변경 없음 (Repository 메서드 시그니처 동일).
+
+**Refining 의 의미**: 사전 시나리오 (2-A) 에 등록할 수 없었던 새로운 한계로, PBI-12 의 정의 변경이 PBI-11 에도 전파되어야 함을 AI 가 자발적으로 감지하지 못했다. 학생이 통합 점검 단계에서 직접 발견했다. `ai_limitations_catalog.md` L-06 의 영향 범위로 본 사례를 추가 기록.
+
 ---
 
 ## 7. 최종 반영 여부
