@@ -1,28 +1,52 @@
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import styled from 'styled-components';
 import { missionsApi } from '../../api/missions';
+import { useToast } from '../../hooks/useToast';
+
+const TOAST_GUARD_KEY = 'voca.lastAttendanceToastDate';
 
 // 오늘의 데일리 미션 위젯 (PBI-12).
 // 백엔드 응답 형식 (API_명세서 7-1): { date, missions: [...], allCompleted, attendanceGranted }
-// 미션 3개 (STUDY_WORDS / TAKE_QUIZ / SCORE_70) 의 진행률을 progress bar 로 표시.
-// allCompleted && attendanceGranted 면 "출석 인정!" 배지를 함께 보여준다.
+// 미션 3개 (STUDY_WORDS / TAKE_QUIZ / SCORE_70) 의 진행률을 progress bar 로 표시한다.
+// attendanceGranted=true 면 inline Badge 와 함께 toast 알림을 하루 1회 발사한다.
+// window focus 이벤트 시 자동으로 재조회하여 다른 탭/페이지에서 학습한 진척이 즉시 반영되게 한다.
 export default function TodayMissionCard() {
   const [state, setState] = useState({ loading: true, error: null, data: null });
+  const { show } = useToast();
+
+  const fetchToday = useCallback(() => {
+    return missionsApi.today();
+  }, []);
+
+  // 응답을 받았을 때 처음 출석이 인정된 순간이면 toast 한 번 발사한다.
+  // 같은 날 재방문 시 toast 가 또 뜨지 않도록 localStorage 가드로 하루 1회로 제한한다.
+  const handleData = useCallback((data) => {
+    setState({ loading: false, error: null, data });
+    if (!data?.attendanceGranted || !data?.date) return;
+    const last = localStorage.getItem(TOAST_GUARD_KEY);
+    if (last === data.date) return;
+    show('🏅 오늘 미션 모두 완료! 출석이 인정되었어요.', 'success', 4000);
+    localStorage.setItem(TOAST_GUARD_KEY, data.date);
+  }, [show]);
 
   useEffect(() => {
     let mounted = true;
-    missionsApi
-      .today()
-      .then((data) => {
-        if (mounted) setState({ loading: false, error: null, data });
-      })
-      .catch((err) => {
-        if (mounted) setState({ loading: false, error: err, data: null });
-      });
+    fetchToday()
+      .then((data) => { if (mounted) handleData(data); })
+      .catch((err) => { if (mounted) setState({ loading: false, error: err, data: null }); });
+
+    // 다른 탭/페이지에서 단어 학습 또는 퀴즈 제출 후 돌아왔을 때 진척을 즉시 반영.
+    const onFocus = () => {
+      fetchToday()
+        .then((data) => { if (mounted) handleData(data); })
+        .catch(() => {});
+    };
+    window.addEventListener('focus', onFocus);
     return () => {
       mounted = false;
+      window.removeEventListener('focus', onFocus);
     };
-  }, []);
+  }, [fetchToday, handleData]);
 
   return (
     <Card>

@@ -186,6 +186,20 @@ CREATE INDEX idx_qrd_word_id ON quiz_result_details(word_id);
 - `mission.attendanceGranted` 가 `Boolean` (래퍼) 이라 `if (mission.getAttendanceGranted())` 같은 호출이 null 시 NPE 일 수 있어 `Boolean.FALSE.equals(...)` 로 작성. 사전 시나리오에 없었던 작은 안전망 — `ai_limitations_catalog.md` 의 L-05 후보로 검토.
 - PBI-11 의 위임 vs 직접 표가 6행, PBI-12 는 1행으로 압축. 압축 후에도 핵심 invariant (P1·P2·P3) 의 직접 검증 의도는 유지. `methodology_experiment.md` §5 권고 그대로 적용된 사례.
 
+### 6-C. 사후 Refining 다발 — 통합 점검에서 식별한 미세 정합성 문제 처리 (2026-05-20)
+
+학생 통합 점검에서 식별된 7건의 잔여 항목 중 코드 변경이 동반된 4건을 본 PBI 안에서 처리한다. 산출물 변경만 필요한 2건과 별도 PBI 영역 1건은 본 절 끝에 사유와 함께 기록한다.
+
+| # | 항목 | 처리 |
+|---|---|---|
+| #2 | 출석 부여 트리거가 GET /missions/today 호출 시점이라 사용자 행위 직후 즉시 부여되지 않음 | `MissionService` 의 본문을 `refresh(userId, today)` 로 추출하고 `evaluateAndGrant(userId)` 를 외부 트리거용으로 public 노출. `WordStudyService.recordView` 와 `QuizResultService.save` 끝에서 호출 → 단어 학습 / 퀴즈 제출 직후 즉시 출석 부여. GET 응답은 동일한 본문을 공유하므로 멱등성 유지. |
+| #3 | 알림이 inline Badge 만이라 처음 부여된 순간을 구분 못함 | `TodayMissionCard` 에 `useToast` 사용. `attendanceGranted=true` 이고 `localStorage('voca.lastAttendanceToastDate') !== data.date` 인 경우에만 toast 발사 + 키 갱신. 같은 날 재방문에 토스트가 또 뜨지 않음. 부수: 코드베이스에 마운트되지 않았던 `Toast` 컴포넌트를 `App.jsx` 의 `ToastProvider` 안에 한 줄로 마운트해 인프라 부채 해소. |
+| #4 | 페이지 진입 시 1회 fetch 라 다른 페이지에서 학습 후 진척 갱신 안 됨 | `TodayMissionCard` 와 `TodayWordsCard` 둘 다 `window` 의 `focus` 이벤트 리스너 추가 → 탭/페이지 복귀 시 자동 재조회. |
+| #5 | `QuizResultRepository.countDistinctWordsStudiedToday` 데드 메서드 | 메서드 삭제. PBI-12 B-옵션 전환 후 어느 곳에서도 호출되지 않음을 grep 으로 확인. |
+| #7 | JVM 기본 timezone 미설정 → `LocalDate.now()` 가 UTC 일 위험 | `VocaApplication.@PostConstruct initTimezone()` 에서 `TimeZone.setDefault(TimeZone.getTimeZone("Asia/Seoul"))`. `application.yml` 에 `spring.jackson.time-zone: Asia/Seoul` 도 함께 추가하여 직렬화 timezone 까지 일치. |
+| #8 | "퀴즈 1회 응시" 라벨이 시작이 아닌 제출 시점에 카운트 | **코드 변경 없음** (명세 description 추종). 대신 본 절에 의미를 명시 — 시작했다가 도중 이탈하는 사용자는 카운트 0. 명세 수정이 필요하면 별도 PBI 로 분리. |
+| #9 | API 명세 응답 래퍼 `{status, message, data}` vs 컨벤션 `ResponseEntity<DTO>` 직접 반환 | **코드 변경 없음** (PBI-11/12 범위 밖). 본 PBI 의 두 엔드포인트만 래퍼를 적용하면 다른 6개 컨트롤러(`/api/words`, `/api/auth/*`, `/api/quiz/*`, `/api/quiz-results`, `/api/admin/*`, `/api/dashboard`) 와 컨벤션이 어긋남. 일괄 마이그레이션은 별도 PBI ("응답 래퍼 통일") 로 분리 — 후속 PBI 후보로 기록. |
+
 ### 6-B. 사후 Refining 1회 — STUDY_WORDS 정의 전환 (B-옵션)
 
 학생 명시 지시 (2026-05-20) 로 STUDY_WORDS 의 카운트 소스를 **퀴즈 응시 단어** 에서 **단어 학습 페이지 진입 이력** 으로 전환했다.
