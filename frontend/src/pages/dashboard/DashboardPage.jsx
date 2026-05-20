@@ -32,6 +32,7 @@ export default function DashboardPage() {
   const now = new Date();
   const year = now.getFullYear();
   const month = now.getMonth() + 1;
+  const daysInMonth = new Date(year, month, 0).getDate();
   const attendedSet = new Set(attendance.filter((a) => a.attended).map((a) => a.date));
   const attendanceDays = attendedSet.size;
   const averageScore = summary?.averageScore != null ? Number(summary.averageScore) : 0;
@@ -62,6 +63,7 @@ export default function DashboardPage() {
         </Header>
 
         <Content>
+          {/* 배너 */}
           <Banner>
             <BannerLeft>
               <BannerTitle>TOEIC 단어<br />지금 바로 시작하세요!</BannerTitle>
@@ -74,6 +76,7 @@ export default function DashboardPage() {
           <TodayWordsCard />
           <TodayMissionCard />
 
+          {/* 통계 */}
           <SectionTitle style={{ marginBottom: 16 }}>나의 학습 현황</SectionTitle>
           <StatsGrid>
             <StatCard $bg="#FFF3E0">
@@ -98,6 +101,7 @@ export default function DashboardPage() {
             </StatCard>
           </StatsGrid>
 
+          {/* 학습 메뉴 */}
           <SectionTitle style={{ margin: '32px 0 16px' }}>학습 메뉴</SectionTitle>
           <CardGrid>
             {cards.map((c, i) => (
@@ -110,6 +114,7 @@ export default function DashboardPage() {
             ))}
           </CardGrid>
 
+          {/* 랭킹 */}
           <RankingSection>
             <RankingHeader>
               <div>
@@ -128,6 +133,7 @@ export default function DashboardPage() {
                 ))}
               </TabGroup>
             </RankingHeader>
+
             {ranking.length === 0 ? (
                 <EmptyRank>랭킹 데이터가 없습니다.</EmptyRank>
             ) : (
@@ -252,19 +258,21 @@ const TabBtn = styled.button`
   padding: 6px 14px; border-radius: 9999px; font-size: 13px; font-weight: 600; cursor: pointer; border: none;
   background: ${({ $active }) => $active ? '#F6841F' : '#FFF0DC'};
   color: ${({ $active }) => $active ? '#fff' : '#B07040'};
+  transition: background .15s;
 `;
 const EmptyRank = styled.div`text-align: center; color: #B07040; padding: 32px; font-size: 14px;`;
 const RankList = styled.div`display: flex; flex-direction: column; gap: 8px;`;
 const RankRow = styled.div`
   display: flex; align-items: center; justify-content: space-between;
   padding: 12px 16px; border-radius: 12px;
-  background: ${({ $isMe, $top }) => $isMe ? '#FFF3E0' : $top ? '#FFFBF5' : '#FAFAFA'};
+  background: ${({ $top, $isMe }) => $isMe ? '#FFF3E0' : $top ? '#FFFBF5' : '#FAFAFA'};
   border: 1.5px solid ${({ $isMe }) => $isMe ? '#F6D8B8' : 'transparent'};
 `;
 const RankLeft = styled.div`display: flex; align-items: center; gap: 12px;`;
 const RankBadge = styled.div`
   width: 36px; height: 36px; border-radius: 50%;
-  display: flex; align-items: center; justify-content: center; font-size: 20px;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 20px;
   background: ${({ $rank }) => $rank === 1 ? '#FFF9C4' : $rank === 2 ? '#F5F5F5' : $rank === 3 ? '#FFE8D2' : '#F0F0F0'};
 `;
 const RankNum = styled.span`font-size: 13px; font-weight: 700; color: #999;`;
