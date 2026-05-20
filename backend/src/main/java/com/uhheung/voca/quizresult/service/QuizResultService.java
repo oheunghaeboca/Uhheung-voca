@@ -2,6 +2,7 @@ package com.uhheung.voca.quizresult.service;
 
 import com.uhheung.voca.common.exception.ApiException;
 import com.uhheung.voca.common.exception.ErrorCode;
+import com.uhheung.voca.mission.service.MissionService;
 import com.uhheung.voca.quiz.entity.QuizResult;
 import com.uhheung.voca.quiz.entity.QuizResultDetail;
 import com.uhheung.voca.quiz.repository.QuizResultDetailRepository;
@@ -32,8 +33,11 @@ public class QuizResultService {
     private final QuizResultDetailRepository quizResultDetailRepository;
     private final UserRepository userRepository;
     private final WordRepository wordRepository;
+    private final MissionService missionService;
 
     // 퀴즈 전체 결과와 문항별 상세 결과를 하나의 트랜잭션으로 저장한다.
+    // 저장 직후 미션 진척을 재평가하여 TAKE_QUIZ / SCORE_70 충족 시점이 GET 호출이 아닌
+    // 이 트리거에서 잡히도록 한다 (PBI-12 출석 부여 트리거 분산, 2026-05-20).
     public QuizResultSaveResponse save(QuizResultSaveRequest request) {
         validateUser(request.getUserId());
         validateWords(request.getDetails());
@@ -42,6 +46,7 @@ public class QuizResultService {
         QuizResult savedQuizResult = quizResultRepository.save(toQuizResult(request));
         List<QuizResultDetail> details = toDetails(savedQuizResult.getId(), request.getDetails());
         quizResultDetailRepository.saveAll(details);
+        missionService.evaluateAndGrant(request.getUserId());
 
         return QuizResultSaveResponse.from(savedQuizResult);
     }

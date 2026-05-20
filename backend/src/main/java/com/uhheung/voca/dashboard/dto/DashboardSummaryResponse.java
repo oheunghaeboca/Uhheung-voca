@@ -3,8 +3,8 @@ package com.uhheung.voca.dashboard.dto;
 import java.math.BigDecimal;
 
 public record DashboardSummaryResponse(
-        long totalQuizzes,
+        int totalQuizzes,
         BigDecimal averageScore,
-        int totalAttendance,
+        int totalWordsStudied,
         int currentStreak
 ) {}

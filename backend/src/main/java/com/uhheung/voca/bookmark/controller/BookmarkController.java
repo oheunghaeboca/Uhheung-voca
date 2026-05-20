@@ -1,13 +1,9 @@
 package com.uhheung.voca.bookmark.controller;
 
 import com.uhheung.voca.bookmark.service.BookmarkService;
-import com.uhheung.voca.word.entity.Word;
 import lombok.RequiredArgsConstructor;
-import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.*;
-
-import java.util.List;
-import java.util.Map;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RestController;
 
 @RestController
 @RequestMapping("/api/bookmarks")
@@ -16,16 +12,6 @@ public class BookmarkController {
 
     private final BookmarkService bookmarkService;
 
-    @GetMapping
-    public ResponseEntity<List<Word>> list(@RequestParam Long userId) {
-        return ResponseEntity.ok(bookmarkService.list(userId));
-    }
-
-    @PostMapping("/{wordId}")
-    public ResponseEntity<Map<String, Boolean>> toggle(
-            @PathVariable Long wordId,
-            @RequestParam Long userId) {
-        boolean bookmarked = bookmarkService.toggle(userId, wordId);
-        return ResponseEntity.ok(Map.of("bookmarked", bookmarked));
-    }
+    // TODO: GET /api/bookmarks
+    // TODO: POST /api/bookmarks/toggle (또는 POST /api/bookmarks/{wordId})
 }

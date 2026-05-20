@@ -8,20 +8,21 @@ const Stack = styled.div`
   gap: ${({ theme }) => theme.spacing[3]};
 `;
 
-export default function WordList({ items = [], bookmarkedIds = new Set(), onBookmarkToggle, onEdit, onDelete }) {
-  if (!items.length) return <EmptyState message="단어가 없습니다." />;
+export default function WordList({ items = [], onEdit, onDelete }) {
+  if (!items.length) {
+    return <EmptyState message="단어가 없습니다." />;
+  }
+
   return (
-      <Stack>
-        {items.map((word, index) => (
-            <WordCard
-                key={word.wordId ?? word.id ?? `${word.english}-${index}`}
-                word={word}
-                bookmarked={bookmarkedIds.has(word.wordId ?? word.id)}
-                onBookmarkToggle={onBookmarkToggle}
-                onEdit={onEdit}
-                onDelete={onDelete}
-            />
-        ))}
-      </Stack>
+    <Stack>
+      {items.map((word, index) => (
+        <WordCard
+          key={word.wordId ?? word.id ?? `${word.english}-${index}`}
+          word={word}
+          onEdit={onEdit}
+          onDelete={onDelete}
+        />
+      ))}
+    </Stack>
   );
 }
