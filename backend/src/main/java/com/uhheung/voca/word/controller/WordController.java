@@ -10,6 +10,8 @@ import java.util.List;
 
 @RestController
 @RequestMapping("/api/words")
+
+
 @RequiredArgsConstructor
 public class WordController {
 
