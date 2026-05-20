@@ -15,8 +15,6 @@ import WrongNotePage from '../pages/wrongnote/WrongNotePage.jsx';
 import StatsPage from '../pages/stats/StatsPage.jsx';
 import RankingPage from '../pages/ranking/RankingPage.jsx';
 import FlashcardPage from '../pages/word/FlashcardPage.jsx';
-import MyPage from '../pages/mypage/MyPage.jsx';
-// children 배열에 추가
 
 /**
  * 라우트 구조:
@@ -50,8 +48,6 @@ export const router = createBrowserRouter([
       { path: '/wrong-notes', element: <WrongNotePage /> },
       { path: '/stats', element: <StatsPage /> },
       { path: '/ranking', element: <RankingPage /> },
-      { path: '/mypage', element: <MyPage /> },
-      { path: '/mypage', element: <MyPage /> },
     ],
   },
   { path: '*', element: <Navigate to="/" replace /> },

@@ -117,7 +117,7 @@ function DeleteIcon() {
 
 const hasExample = (word) => word?.example && word.example.trim() !== '';
 
-export default function WordCard({ word, bookmarked, onBookmarkToggle, onEdit, onDelete }) {
+export default function WordCard({ word, bookmarked, onEdit, onDelete }) {
   return (
     <Card>
       <Row>
@@ -131,11 +131,7 @@ export default function WordCard({ word, bookmarked, onBookmarkToggle, onEdit, o
         </WordInfo>
         <Actions>
           <PronounceButton text={word?.english} />
-            <BookmarkToggle
-                wordId={word?.wordId ?? word?.id}
-                bookmarked={bookmarked}
-                onToggle={onBookmarkToggle}
-            />
+          <BookmarkToggle wordId={word?.wordId ?? word?.id} bookmarked={bookmarked} />
           {onEdit && (
             <IconButton type="button" title="수정" onClick={() => onEdit(word)}>
               <EditIcon />

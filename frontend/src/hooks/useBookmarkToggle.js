@@ -1,21 +1,18 @@
 import { useCallback, useState } from 'react';
 import { bookmarksApi } from '../api/bookmarks';
-import { useAuth } from './useAuth';
 
 export function useBookmarkToggle() {
-  const { user } = useAuth();
   const [pending, setPending] = useState(false);
 
-  const toggle = useCallback(async (wordId, onSuccess) => {
-    if (!user?.id) return;
+  // TODO: 옵티미스틱 업데이트 + 실패 시 롤백 — Vibe Coding 시 채울 것
+  const toggle = useCallback(async (wordId) => {
     setPending(true);
     try {
-      await bookmarksApi.toggle(wordId, user.id);
-      onSuccess?.();
+      return await bookmarksApi.toggle(wordId);
     } finally {
       setPending(false);
     }
-  }, [user?.id]);
+  }, []);
 
   return { toggle, pending };
 }
