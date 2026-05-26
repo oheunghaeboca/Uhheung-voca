@@ -1,17 +1,36 @@
 import { useEffect, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import styled from 'styled-components';
 import { wordsApi } from '../../api/words';
+import { useAuth } from '../../hooks/useAuth';
 
 // 오늘의 학습 단어 추천 카드. /api/words/daily 응답을 가로 스크롤 리스트로 보여준다.
 // 같은 날 같은 사용자는 동일한 20개 단어를 동일한 순서로 받는다 (백엔드 멱등성 보장).
 export default function TodayWordsCard() {
+  const navigate = useNavigate();
+  const { user } = useAuth();
   const [state, setState] = useState({ loading: true, error: null, data: null });
 
+  // 추천 단어 20개로 FlashcardPage 진입. wordId 필드를 FlashcardPage 가 쓰는 id 로 매핑한다.
+  const handleStart = () => {
+    const list = state.data?.words ?? [];
+    if (!list.length) return;
+    const words = list.map((w) => ({
+      id: w.wordId,
+      english: w.english,
+      korean: w.korean,
+      level: w.level,
+      type: w.type,
+    }));
+    navigate('/flashcard', { state: { source: 'daily', words } });
+  };
+
   useEffect(() => {
+    if (!user?.id) return;
     let mounted = true;
     const load = () => {
       wordsApi
-        .daily()
+        .daily(user.id)
         .then((data) => {
           if (mounted) setState({ loading: false, error: null, data });
         })
@@ -28,13 +47,22 @@ export default function TodayWordsCard() {
       mounted = false;
       window.removeEventListener('focus', onFocus);
     };
-  }, []);
+  }, [user?.id]);
 
   return (
     <Card>
       <Header>
-        <SectionTitle>오늘의 추천 단어</SectionTitle>
-        <Hint>매일 학습 이력이 적은 단어 20개를 골라 드려요</Hint>
+        <HeaderLeft>
+          <SectionTitle>오늘의 추천 단어</SectionTitle>
+          <Hint>매일 학습 이력이 적은 단어 20개를 골라 드려요</Hint>
+        </HeaderLeft>
+        <StartBtn
+          onClick={handleStart}
+          disabled={!state.data?.words?.length}
+          aria-label="오늘의 추천 단어로 학습 시작"
+        >
+          🐯 오늘의 학습 시작 →
+        </StartBtn>
       </Header>
 
       {state.loading && <Status>불러오는 중…</Status>}
@@ -69,11 +97,17 @@ const Card = styled.section`
 
 const Header = styled.div`
   display: flex;
-  align-items: baseline;
+  align-items: center;
   justify-content: space-between;
   margin-bottom: 16px;
   flex-wrap: wrap;
-  gap: 8px;
+  gap: 12px;
+`;
+
+const HeaderLeft = styled.div`
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
 `;
 
 const SectionTitle = styled.h2`
@@ -85,6 +119,27 @@ const SectionTitle = styled.h2`
 const Hint = styled.span`
   font-size: 12px;
   color: #B07040;
+`;
+
+const StartBtn = styled.button`
+  background: #F6841F;
+  color: #fff;
+  border: none;
+  border-radius: 12px;
+  padding: 10px 18px;
+  font-size: 14px;
+  font-weight: 800;
+  cursor: pointer;
+  transition: opacity .15s, transform .15s, box-shadow .15s;
+  &:hover:not(:disabled) {
+    opacity: .92;
+    transform: translateY(-1px);
+    box-shadow: 0 6px 16px rgba(216, 106, 12, 0.25);
+  }
+  &:disabled {
+    background: #F6D8B8;
+    cursor: not-allowed;
+  }
 `;
 
 const Status = styled.div`

@@ -6,6 +6,6 @@ public record WrongNoteResponse(
         Long wordId,
         String english,
         String korean,
-        int wrongCount,
+        long wrongCount,
         LocalDateTime lastWrongAt
 ) {}

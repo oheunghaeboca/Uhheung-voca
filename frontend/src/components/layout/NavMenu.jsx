@@ -12,7 +12,8 @@ const Item = styled(NavLink)`
 
 const ITEMS = [
   { to: '/dashboard', label: '대시보드' },
-  { to: '/words', label: '단어' },
+  { to: '/flashcard', label: '단어 학습' },
+  { to: '/words', label: '단어 목록' },
   { to: '/quiz', label: '퀴즈' },
   { to: '/bookmarks', label: '북마크' },
   { to: '/wrong-notes', label: '오답노트' },

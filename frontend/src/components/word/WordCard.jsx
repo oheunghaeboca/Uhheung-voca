@@ -4,6 +4,20 @@ import WordTag from './WordTag.jsx';
 import PronounceButton from './PronounceButton.jsx';
 import BookmarkToggle from './BookmarkToggle.jsx';
 
+// 단어 카드 — 베이지 보더 + hover 시 살짝 떠오르는 인터랙션(디자인 톤 통일)
+const WordCardShell = styled(Card)`
+  background: #fff;
+  border: 1.5px solid #F6D8B8;
+  border-radius: 14px;
+  transition: transform 0.18s ease-out, box-shadow 0.18s ease-out, border-color 0.18s ease-out;
+
+  &:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 18px rgba(216, 106, 12, 0.10);
+    border-color: #F6841F;
+  }
+`;
+
 const Row = styled.div`
   display: flex;
   align-items: flex-start;
@@ -74,6 +88,14 @@ const Actions = styled.div`
   flex-shrink: 0;
 `;
 
+// 발음 버튼 2종(미국/영국)을 한 묶음으로 — 작은 간격으로 인접 배치
+const PronounceGroup = styled.div`
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  margin-right: ${({ theme }) => theme.spacing[1]};
+`;
+
 const IconButton = styled.button`
   display: flex;
   align-items: center;
@@ -119,7 +141,7 @@ const hasExample = (word) => word?.example && word.example.trim() !== '';
 
 export default function WordCard({ word, bookmarked, onBookmarkToggle, onEdit, onDelete }) {
   return (
-    <Card>
+    <WordCardShell>
       <Row>
         <WordInfo>
           <English>{word?.english}</English>
@@ -130,7 +152,10 @@ export default function WordCard({ word, bookmarked, onBookmarkToggle, onEdit, o
           </Tags>
         </WordInfo>
         <Actions>
-          <PronounceButton text={word?.english} />
+          <PronounceGroup>
+            <PronounceButton text={word?.english} lang="en-US" label="🇺🇸" />
+            <PronounceButton text={word?.english} lang="en-GB" label="🇬🇧" />
+          </PronounceGroup>
             <BookmarkToggle
                 wordId={word?.wordId ?? word?.id}
                 bookmarked={bookmarked}
@@ -159,6 +184,6 @@ export default function WordCard({ word, bookmarked, onBookmarkToggle, onEdit, o
           </ExampleBlock>
         </>
       )}
-    </Card>
+    </WordCardShell>
   );
 }
